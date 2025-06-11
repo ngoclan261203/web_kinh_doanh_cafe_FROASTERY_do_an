@@ -1,0 +1,334 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+@code {
+    private ClaimsPrincipal? _currentUser;
+
+    // Thay đổi từ OnInitializedAsync sang OnAfterRenderAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Lấy trạng thái xác thực của người dùng
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                // In thông tin người dùng và trạng thái xác thực
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                Console.WriteLine("UserId: " + _currentUser?.FindFirst("UserId")?.Value); // In mã người dùng
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("User not authenticated.");
+                    // Chuyển hướng người dùng đến trang đăng nhập nếu chưa xác thực
+                    Navigation.NavigateTo("/dangnhap", true);
+                    return;
+                }
+
+                // Kiểm tra quyền Admin
+                if (!_currentUser.IsInRole("Admin") &&
+                !_currentUser.IsInRole("CSKH") )
+                    
+                {
+                    Console.WriteLine("User does not have Admin role. Redirecting to /home.");
+                    // Chuyển hướng người dùng không phải Admin về trang chủ
+                    Navigation.NavigateTo("/home_admin", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+    }
+}
+
+
+@page "/quan-ly-danh-gia"
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+@using FROASTERY.Services
+@inject DanhGiaService DanhGiaService
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+<style>
+    .star-display span {
+        color: gold;
+        font-size: 1.2em;
+        margin-right: 0.2em;
+    }
+    .review-status {
+        font-weight: bold;
+        padding: 0.2em 0.5em;
+        border-radius: 5px;
+    }
+    .status-new { background-color: #f0ad4e; color: white; }
+    .status-approved { background-color: #5cb85c; color: white; }
+    .status-rejected { background-color: #d9534f; color: white; }
+</style>
+
+<PageTitle>Quản lý Đánh giá</PageTitle>
+
+<div class="container mt-4">
+    <h3 class="text-center">Quản lý Đánh giá</h3>
+    <h5>@(Editing ? "Chỉnh sửa" : "Thêm mới") Đánh giá</h5>
+
+    <EditForm Model="DanhGiaPhanHoi" OnValidSubmit="Save" class="border p-4 rounded shadow bg-light mb-4">
+        <DataAnnotationsValidator />
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label for="maDanhGia" class="form-label">Mã đánh giá:</label>
+                <input type="text" id="maDanhGia" @bind="DanhGiaPhanHoi.MaDanhGia" class="form-control" readonly />
+            </div>
+            <div class="col-md-4">
+                <label for="tenKhachHang" class="form-label">Tên khách hàng:</label>
+                <div class="position-relative validation-wrapper">
+                    <InputText id="tenKhachHang" @bind-Value="DanhGiaPhanHoi.HoTen" class="form-control" />
+                    <ValidationMessage For="@(() => DanhGiaPhanHoi.HoTen)" />
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label for="thongTinLienLac" class="form-label">Thông tin liên lạc:</label>
+                <div class="position-relative validation-wrapper">
+                    <InputText id="thongTinLienLac" @bind-Value="DanhGiaPhanHoi.ThongTinLienLac" class="form-control" />
+                    <ValidationMessage For="@(() => DanhGiaPhanHoi.ThongTinLienLac)" />
+                </div>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                @* <label for="soSao" class="form-label">Số sao:</label>
+                <InputNumber id="soSao" @bind-Value="DanhGiaPhanHoi.SoSao" class="form-control" />
+                <ValidationMessage For="@(() => DanhGiaPhanHoi.SoSao)" /> *@
+                <label for="trangThai" class="form-label">Trạng thái:</label>
+            <InputSelect id="trangThai" @bind-Value="DanhGiaPhanHoi.TrangThai" class="form-select">
+                <option value="0">Mới</option>
+                <option value="1">Đã duyệt</option>
+                <option value="2">Đã từ chối</option>
+            </InputSelect>
+            </div>
+            <div class="col-md-6">
+                <label for="ghiChu" class="form-label">Ghi chú:</label>
+                <InputText id="ghiChu" @bind-Value="DanhGiaPhanHoi.GhiChu" class="form-control" />
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="noiDung" class="form-label">Nội dung:</label>
+            <div class="position-relative validation-wrapper">
+                <InputTextArea id="noiDung" @bind-Value="DanhGiaPhanHoi.NoiDung" class="form-control" rows="4" />
+                <ValidationMessage For="@(() => DanhGiaPhanHoi.NoiDung)" />
+            </div>
+        </div>
+        @* <div class="mb-3">
+            <label for="trangThai" class="form-label">Trạng thái:</label>
+            <InputSelect id="trangThai" @bind-Value="DanhGiaPhanHoi.TrangThai" class="form-select">
+                <option value="0">Mới</option>
+                <option value="1">Đã duyệt</option>
+                <option value="2">Đã từ chối</option>
+            </InputSelect>
+        </div> *@
+
+        <div class="d-flex justify-content-center gap-3 mt-2">
+            <button type="submit" class="btn btn-save">Lưu</button>
+            <button type="button" class="btn btn-cancel" @onclick="Cancel">Hủy</button>
+        </div>
+    </EditForm>
+    @if (!string.IsNullOrEmpty(DbErrorMessage))
+    {
+        <div class="alert alert-danger mt-2">
+            @DbErrorMessage
+        </div>
+    }
+    <div class="d-flex justify-content-center mb-4">
+        <input type="text" @bind="SearchQuery" class="form-control w-50" placeholder="Tìm kiếm theo mã, tên, nội dung..." />
+        <button @onclick="Search" class="btn btn-success ms-2">Tìm kiếm</button>
+    </div>
+
+    <div class="table-responsive">
+        
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    
+                    <th style="width: 50px;">Mã</th>
+                    <th style="width: 170px;">Tên khách hàng</th>
+                    <th>Liên hệ</th>
+                    @* <th>Sao</th> *@
+                    <th>Nội dung</th>
+                    <th>Ghi chú</th>
+                    <th style="width: 120px;">Thời gian gửi</th>
+                    <th style="width: 120px;">Trạng thái</th>
+                    <th style="width: 130px;">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (DanhGias != null)
+                {
+                    @foreach (var dg in DanhGias)
+                    {
+                        <tr>
+                            
+                            <td>@dg.MaDanhGia</td>
+                            <td>@dg.HoTen</td>
+                            <td>@dg.ThongTinLienLac</td>
+                            @* <td>
+                                <div class="star-display">
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        <span class="@(i <= dg.SoSao ? "filled" : "")">★</span>
+                                    }
+                                </div>
+                            </td> *@
+                            <td>@dg.NoiDung</td>
+                            <td>@dg.GhiChu</td>
+                            <td>@dg.ThoiGianGui.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>
+                                @switch (dg.TrangThai)
+                                {
+                                    case 0: <span class="review-status status-new">Mới</span> break;
+                                    case 1: <span class="review-status status-approved">Đã duyệt</span> break;
+                                    case 2: <span class="review-status status-rejected">Đã từ chối</span> break;
+                                    default: <span>Không xác định</span> break;
+                                }
+                            </td>
+                            <td>
+                                <button @onclick="() => Edit(dg)" class="btn btn-warning">Sửa</button>
+                                <button @onclick="() => Delete(dg.MaDanhGia)" class="btn btn-danger">Xóa</button>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="10" class="text-center">Không có dữ liệu đánh giá.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private List<DanhGia> DanhGias = new();
+    private List<DanhGia> FullDanhGias = new();
+    private DanhGia DanhGiaPhanHoi = new();
+    private bool Editing = false;
+    private string SearchQuery = string.Empty;
+    private string? DbErrorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDanhGias();
+    }
+
+    private async Task LoadDanhGias()
+    {
+        FullDanhGias = await DanhGiaService.LayTatCaDanhGia(1, 10);
+        DanhGias = new List<DanhGia>(FullDanhGias);
+        StateHasChanged();
+    }
+
+    private void Edit(DanhGia danhGia)
+    {
+        DanhGiaPhanHoi = new DanhGia
+        {
+            MaDanhGia = danhGia.MaDanhGia,
+            NoiDung = danhGia.NoiDung,
+            HoTen = danhGia.HoTen,
+            ThongTinLienLac = danhGia.ThongTinLienLac,
+            GhiChu = danhGia.GhiChu,
+            SoSao = danhGia.SoSao,
+            TrangThai = danhGia.TrangThai
+        };
+        Editing = true;
+    }
+
+    private async Task Save()
+    {
+        DbErrorMessage = null;
+
+        if (!Editing)
+        {
+            try
+            {
+                await DanhGiaService.LuuDanhGia(DanhGiaPhanHoi);
+                await LoadDanhGias();
+                DanhGiaPhanHoi = new DanhGia();
+                Editing = false;
+            }
+            catch (Exception ex)
+            {
+                DbErrorMessage = "Lỗi lưu dữ liệu: " + ex.Message;
+            }
+        }
+        else
+        {
+            try
+            {
+                await DanhGiaService.CapNhatDanhGia(DanhGiaPhanHoi);
+                await LoadDanhGias();
+                DanhGiaPhanHoi = new DanhGia();
+                Editing = false;
+            }
+            catch (Exception ex)
+            {
+                DbErrorMessage = "Lỗi lưu thay đổi: " + ex.Message;
+            }
+        }
+    }
+    private async Task Delete(int id)
+    {
+        try
+        {
+            await DanhGiaService.XoaDanhGia(id);
+            await LoadDanhGias();
+        }
+        catch (Exception ex)
+        {
+            DbErrorMessage = "Lỗi khi xóa đánh giá: " + ex.Message;
+        }
+    }
+
+    private void Cancel()
+    {
+        DanhGiaPhanHoi = new DanhGia();
+        Editing = false;
+        DbErrorMessage = null;
+    }
+
+    private async Task Search()
+    {
+        if (string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            await LoadDanhGias();
+            return;
+        }
+
+        DanhGias = await DanhGiaService.TimKiemDanhGia(SearchQuery);
+        StateHasChanged();
+    }
+
+    private async Task LocTheoTrangThai(int trangThai)
+    {
+        if (trangThai == -1) // Giá trị đặc biệt để hiển thị tất cả
+        {
+            await LoadDanhGias();
+        }
+        else
+        {
+            DanhGias = await DanhGiaService.LocDanhGiaTheoTrangThai(trangThai);
+            StateHasChanged();
+        }
+    }
+}

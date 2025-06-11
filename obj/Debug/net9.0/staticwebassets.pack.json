@@ -1,0 +1,689 @@
+{
+  "Files": [
+    {
+      "Id": "E:\\FROASTERY\\obj\\Debug\\net9.0\\scopedcss\\projectbundle\\FROASTERY.bundle.scp.css",
+      "PackagePath": "staticwebassets\\FROASTERY.n0vox9s6mc.bundle.scp.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\app.css",
+      "PackagePath": "staticwebassets\\app.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\custom.css",
+      "PackagePath": "staticwebassets\\custom.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\backlog.png",
+      "PackagePath": "staticwebassets\\images\\backlog.png"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\coffee-beans-white.png",
+      "PackagePath": "staticwebassets\\images\\coffee-beans-white.png"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\coffee-cup-white.png",
+      "PackagePath": "staticwebassets\\images\\coffee-cup-white.png"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\coffee-cup.png",
+      "PackagePath": "staticwebassets\\images\\coffee-cup.png"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\decor1.png",
+      "PackagePath": "staticwebassets\\images\\decor1.png"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\decor2.png",
+      "PackagePath": "staticwebassets\\images\\decor2.png"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\feature1.png",
+      "PackagePath": "staticwebassets\\images\\feature1.png"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\feature2.png",
+      "PackagePath": "staticwebassets\\images\\feature2.png"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\feature3.png",
+      "PackagePath": "staticwebassets\\images\\feature3.png"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\feature4.png",
+      "PackagePath": "staticwebassets\\images\\feature4.png"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\footer-bg.jpg",
+      "PackagePath": "staticwebassets\\images\\footer-bg.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\footer-bg1.png",
+      "PackagePath": "staticwebassets\\images\\footer-bg1.png"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\logo.png",
+      "PackagePath": "staticwebassets\\images\\logo.png"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road1-1.jpg",
+      "PackagePath": "staticwebassets\\images\\road1-1.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road1-2.jpg",
+      "PackagePath": "staticwebassets\\images\\road1-2.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road1-3.jpg",
+      "PackagePath": "staticwebassets\\images\\road1-3.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road2-1.jpg",
+      "PackagePath": "staticwebassets\\images\\road2-1.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road2-2.jpg",
+      "PackagePath": "staticwebassets\\images\\road2-2.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road2-3.jpg",
+      "PackagePath": "staticwebassets\\images\\road2-3.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road3-1.jpg",
+      "PackagePath": "staticwebassets\\images\\road3-1.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road3-2.jpg",
+      "PackagePath": "staticwebassets\\images\\road3-2.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road3-3.jpg",
+      "PackagePath": "staticwebassets\\images\\road3-3.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road4-1.jpg",
+      "PackagePath": "staticwebassets\\images\\road4-1.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road4-2.jpg",
+      "PackagePath": "staticwebassets\\images\\road4-2.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road4-3.jpg",
+      "PackagePath": "staticwebassets\\images\\road4-3.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road5-1.jpg",
+      "PackagePath": "staticwebassets\\images\\road5-1.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road5-2.jpg",
+      "PackagePath": "staticwebassets\\images\\road5-2.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road5-3.jpg",
+      "PackagePath": "staticwebassets\\images\\road5-3.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road6-1.jpg",
+      "PackagePath": "staticwebassets\\images\\road6-1.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road6-2.jpg",
+      "PackagePath": "staticwebassets\\images\\road6-2.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\road6-3.jpg",
+      "PackagePath": "staticwebassets\\images\\road6-3.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\signature1 copy.jpg",
+      "PackagePath": "staticwebassets\\images\\signature1 copy.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\signature1.jpg",
+      "PackagePath": "staticwebassets\\images\\signature1.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\signature2 copy.jpg",
+      "PackagePath": "staticwebassets\\images\\signature2 copy.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\signature2.jpg",
+      "PackagePath": "staticwebassets\\images\\signature2.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\signature3 copy.jpg",
+      "PackagePath": "staticwebassets\\images\\signature3 copy.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\signature3.jpg",
+      "PackagePath": "staticwebassets\\images\\signature3.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\slider1.jpg",
+      "PackagePath": "staticwebassets\\images\\slider1.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\slider2.jpg",
+      "PackagePath": "staticwebassets\\images\\slider2.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\images\\slider3.jpg",
+      "PackagePath": "staticwebassets\\images\\slider3.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-grid.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-grid.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-grid.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-grid.css.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-grid.min.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-grid.min.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-grid.min.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-grid.min.css.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.css.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.min.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.min.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.min.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.min.css.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.css.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.min.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.min.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.min.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.min.css.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.css.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.min.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.min.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.min.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.min.css.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.css.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.min.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.min.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.min.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.min.css.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.css.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.min.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.min.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.min.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.min.css.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap.css.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap.min.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap.min.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap.min.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap.min.css.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.css.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.min.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.min.css"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.min.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.min.css.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.js",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.js"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.js.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.js.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.min.js",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.min.js"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.min.js.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.min.js.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.esm.js",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.esm.js"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.esm.js.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.esm.js.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.esm.min.js",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.esm.min.js"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.esm.min.js.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.esm.min.js.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.js",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.js"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.js.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.js.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.min.js",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.min.js"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.min.js.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.min.js.map"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\js\\chart-render.js",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\chart-render.js"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\js\\print-canvas.js",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\print-canvas.js"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\js\\print-div.js",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\print-div.js"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\lib\\bootstrap\\dist\\js\\printUtils.js",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\printUtils.js"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\0386bb7a-649e-487c-ac68-23fa4ace0acf.webp",
+      "PackagePath": "staticwebassets\\uploads\\0386bb7a-649e-487c-ac68-23fa4ace0acf.webp"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\04e74425-5a77-4bd7-823b-6d32ad8c70eb.docx",
+      "PackagePath": "staticwebassets\\uploads\\04e74425-5a77-4bd7-823b-6d32ad8c70eb.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\093cb1ad-137b-420c-9c21-353e8a5ace93.docx",
+      "PackagePath": "staticwebassets\\uploads\\093cb1ad-137b-420c-9c21-353e8a5ace93.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\09e2a18e-9e27-4ac5-a542-85910f961564.docx",
+      "PackagePath": "staticwebassets\\uploads\\09e2a18e-9e27-4ac5-a542-85910f961564.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\0a3c9dec-17ce-4da2-ab84-bc53ab05a8cb.jpg",
+      "PackagePath": "staticwebassets\\uploads\\0a3c9dec-17ce-4da2-ab84-bc53ab05a8cb.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\0acab643-1306-42fd-9c0b-1b44f3a867b3.webp",
+      "PackagePath": "staticwebassets\\uploads\\0acab643-1306-42fd-9c0b-1b44f3a867b3.webp"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\13974335-cb8c-40b8-b00b-ebf4f06fd7d7.webp",
+      "PackagePath": "staticwebassets\\uploads\\13974335-cb8c-40b8-b00b-ebf4f06fd7d7.webp"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\1ba1298f-6b74-4960-b236-77573ef4e17d.jpg",
+      "PackagePath": "staticwebassets\\uploads\\1ba1298f-6b74-4960-b236-77573ef4e17d.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\1f4b2782-d7b7-436d-a5ed-1fa8541cd591.jpg",
+      "PackagePath": "staticwebassets\\uploads\\1f4b2782-d7b7-436d-a5ed-1fa8541cd591.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\229a11d9-3593-4dcf-9d05-048ad5683a6c.jpg",
+      "PackagePath": "staticwebassets\\uploads\\229a11d9-3593-4dcf-9d05-048ad5683a6c.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\23fd6bf0-0bed-437a-970d-a3612b619e29.docx",
+      "PackagePath": "staticwebassets\\uploads\\23fd6bf0-0bed-437a-970d-a3612b619e29.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\2404852c-2e15-45f1-bd09-b45bb7b36f8a.pdf",
+      "PackagePath": "staticwebassets\\uploads\\2404852c-2e15-45f1-bd09-b45bb7b36f8a.pdf"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\27dc74cf-e8bf-4161-a002-e66cffe916e0.jpg",
+      "PackagePath": "staticwebassets\\uploads\\27dc74cf-e8bf-4161-a002-e66cffe916e0.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\2993d576-cdf3-4af6-bcce-8f6c01200be7.docx",
+      "PackagePath": "staticwebassets\\uploads\\2993d576-cdf3-4af6-bcce-8f6c01200be7.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\2b51026b-bff0-4369-b7e1-9651aef3baff.docx",
+      "PackagePath": "staticwebassets\\uploads\\2b51026b-bff0-4369-b7e1-9651aef3baff.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\2feb9424-14ab-446c-a533-7a29d4346c33.docx",
+      "PackagePath": "staticwebassets\\uploads\\2feb9424-14ab-446c-a533-7a29d4346c33.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\3389eda0-5ab3-45af-953d-a22745eec818.jpg",
+      "PackagePath": "staticwebassets\\uploads\\3389eda0-5ab3-45af-953d-a22745eec818.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\348e4ce6-0552-4573-bec3-415d44bbec4d.jpg",
+      "PackagePath": "staticwebassets\\uploads\\348e4ce6-0552-4573-bec3-415d44bbec4d.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\3f07bcea-5df1-4561-91dd-f33103f6d740.docx",
+      "PackagePath": "staticwebassets\\uploads\\3f07bcea-5df1-4561-91dd-f33103f6d740.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\42239c4f-32aa-4277-88cf-57b4ca48531d.docx",
+      "PackagePath": "staticwebassets\\uploads\\42239c4f-32aa-4277-88cf-57b4ca48531d.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\4293a2cc-f8d2-46f0-834c-40aa1af2b87e.docx",
+      "PackagePath": "staticwebassets\\uploads\\4293a2cc-f8d2-46f0-834c-40aa1af2b87e.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\47241211-7f0e-404c-b72e-7e5f60aca111.docx",
+      "PackagePath": "staticwebassets\\uploads\\47241211-7f0e-404c-b72e-7e5f60aca111.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\47e7922d-d7b8-463e-9788-f2f2962bcadd.webp",
+      "PackagePath": "staticwebassets\\uploads\\47e7922d-d7b8-463e-9788-f2f2962bcadd.webp"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\4ad49247-aa68-45b6-82b1-6998cee265ce.jpg",
+      "PackagePath": "staticwebassets\\uploads\\4ad49247-aa68-45b6-82b1-6998cee265ce.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\4b7c4442-7862-4e1d-a000-1ad2ceafa745.webp",
+      "PackagePath": "staticwebassets\\uploads\\4b7c4442-7862-4e1d-a000-1ad2ceafa745.webp"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\4c470cf9-d56a-469e-b6b2-11f1891583cb.docx",
+      "PackagePath": "staticwebassets\\uploads\\4c470cf9-d56a-469e-b6b2-11f1891583cb.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\521bcdf9-5221-4c3e-bbb3-9653818a854c.jpg",
+      "PackagePath": "staticwebassets\\uploads\\521bcdf9-5221-4c3e-bbb3-9653818a854c.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\529c8043-a6ee-4e29-b613-41cf7a05d288.docx",
+      "PackagePath": "staticwebassets\\uploads\\529c8043-a6ee-4e29-b613-41cf7a05d288.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\5599104b-9558-4ec8-b618-cacb72289340.docx",
+      "PackagePath": "staticwebassets\\uploads\\5599104b-9558-4ec8-b618-cacb72289340.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\58ab46a6-7ce8-4705-89ae-5fd9a8c479b6.jpg",
+      "PackagePath": "staticwebassets\\uploads\\58ab46a6-7ce8-4705-89ae-5fd9a8c479b6.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\58d51cba-e755-42b4-a0c0-740757a9a7e3.docx",
+      "PackagePath": "staticwebassets\\uploads\\58d51cba-e755-42b4-a0c0-740757a9a7e3.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\5afc6f39-ea5e-45c2-8ac6-c91a027d846b.webp",
+      "PackagePath": "staticwebassets\\uploads\\5afc6f39-ea5e-45c2-8ac6-c91a027d846b.webp"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\5f1d430a-bb69-42f3-b44a-8781607fdbb1.jpg",
+      "PackagePath": "staticwebassets\\uploads\\5f1d430a-bb69-42f3-b44a-8781607fdbb1.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\613da8df-4c86-4e62-8688-aeb2cee0f4f2.docx",
+      "PackagePath": "staticwebassets\\uploads\\613da8df-4c86-4e62-8688-aeb2cee0f4f2.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\65ce0087-5045-4fcc-ac04-11c241c68723.jpg",
+      "PackagePath": "staticwebassets\\uploads\\65ce0087-5045-4fcc-ac04-11c241c68723.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\68138237-9155-41cb-bb91-2eb9410ec628.jpg",
+      "PackagePath": "staticwebassets\\uploads\\68138237-9155-41cb-bb91-2eb9410ec628.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\712ba6f4-6a3b-47a3-bf8d-08b0f3da0199.jpg",
+      "PackagePath": "staticwebassets\\uploads\\712ba6f4-6a3b-47a3-bf8d-08b0f3da0199.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\75bdb0fa-c2a7-46f8-a1ad-294b3cb82715.docx",
+      "PackagePath": "staticwebassets\\uploads\\75bdb0fa-c2a7-46f8-a1ad-294b3cb82715.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\7bb81538-5103-4923-b605-a5f746befaa0.jpg",
+      "PackagePath": "staticwebassets\\uploads\\7bb81538-5103-4923-b605-a5f746befaa0.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\7cc08b04-0e31-494c-8434-4889bd284676.jpg",
+      "PackagePath": "staticwebassets\\uploads\\7cc08b04-0e31-494c-8434-4889bd284676.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\8cd9d83e-b28a-4363-93e1-a40544c6c03a.docx",
+      "PackagePath": "staticwebassets\\uploads\\8cd9d83e-b28a-4363-93e1-a40544c6c03a.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\9943ce4d-d498-476d-92c7-620e5c28d8dc.jpg",
+      "PackagePath": "staticwebassets\\uploads\\9943ce4d-d498-476d-92c7-620e5c28d8dc.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\9d3fc616-87ae-4ec3-ac2a-7b83c6a7b445.jpg",
+      "PackagePath": "staticwebassets\\uploads\\9d3fc616-87ae-4ec3-ac2a-7b83c6a7b445.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\a170b62f-f0b4-45e8-82de-e9b01ab8a116.jpg",
+      "PackagePath": "staticwebassets\\uploads\\a170b62f-f0b4-45e8-82de-e9b01ab8a116.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\a5b32429-2b06-43fd-88a4-e934eeb024f8.docx",
+      "PackagePath": "staticwebassets\\uploads\\a5b32429-2b06-43fd-88a4-e934eeb024f8.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\ab828e13-c866-431e-9d34-7ba2a09ea786.jpg",
+      "PackagePath": "staticwebassets\\uploads\\ab828e13-c866-431e-9d34-7ba2a09ea786.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\ad3271fb-5d2d-4026-925c-431da081c770.docx",
+      "PackagePath": "staticwebassets\\uploads\\ad3271fb-5d2d-4026-925c-431da081c770.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\ad70333e-9e9a-4a7e-920e-375ca4d6599b.docx",
+      "PackagePath": "staticwebassets\\uploads\\ad70333e-9e9a-4a7e-920e-375ca4d6599b.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\ae22fcc7-40ea-496a-8f24-91a019b0f00f.docx",
+      "PackagePath": "staticwebassets\\uploads\\ae22fcc7-40ea-496a-8f24-91a019b0f00f.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\b1d00e37-f3a9-4a39-b17e-0371025c6799.jpg",
+      "PackagePath": "staticwebassets\\uploads\\b1d00e37-f3a9-4a39-b17e-0371025c6799.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\b6b9515d-ec49-4096-a649-6e1dac6d9bfc.webp",
+      "PackagePath": "staticwebassets\\uploads\\b6b9515d-ec49-4096-a649-6e1dac6d9bfc.webp"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\b7c8d624-4401-4bdd-8300-55a79e1e59c6.jpg",
+      "PackagePath": "staticwebassets\\uploads\\b7c8d624-4401-4bdd-8300-55a79e1e59c6.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\bb3d4b92-5f57-4188-8f2b-0d26c51d5a67.jpg",
+      "PackagePath": "staticwebassets\\uploads\\bb3d4b92-5f57-4188-8f2b-0d26c51d5a67.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\c04b8ea4-23ef-4c07-832a-0d3b0cd3eafa.jpg",
+      "PackagePath": "staticwebassets\\uploads\\c04b8ea4-23ef-4c07-832a-0d3b0cd3eafa.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\c8d38dee-08df-4dc9-a98b-79ad0bb8c9a4.jpg",
+      "PackagePath": "staticwebassets\\uploads\\c8d38dee-08df-4dc9-a98b-79ad0bb8c9a4.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\cd4c5a2d-b1e2-4158-8644-2baf117a4e84.jpg",
+      "PackagePath": "staticwebassets\\uploads\\cd4c5a2d-b1e2-4158-8644-2baf117a4e84.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\cdbea6ef-9592-461b-bac7-197b535a0c7b.webp",
+      "PackagePath": "staticwebassets\\uploads\\cdbea6ef-9592-461b-bac7-197b535a0c7b.webp"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\d5ac3c31-664a-473c-abca-a37bc902d2a5.pdf",
+      "PackagePath": "staticwebassets\\uploads\\d5ac3c31-664a-473c-abca-a37bc902d2a5.pdf"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\d6131c37-020c-42fc-a186-e4c50d4d690c.jpg",
+      "PackagePath": "staticwebassets\\uploads\\d6131c37-020c-42fc-a186-e4c50d4d690c.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\d6311e57-c04c-4dbe-8b49-e644546bcb33.webp",
+      "PackagePath": "staticwebassets\\uploads\\d6311e57-c04c-4dbe-8b49-e644546bcb33.webp"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\dc0ba6ed-c910-4165-a21d-57a72f9f92de.docx",
+      "PackagePath": "staticwebassets\\uploads\\dc0ba6ed-c910-4165-a21d-57a72f9f92de.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\ddf61315-9912-4cc7-bcf7-1e423d668865.webp",
+      "PackagePath": "staticwebassets\\uploads\\ddf61315-9912-4cc7-bcf7-1e423d668865.webp"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\de84af02-23c4-4d33-b917-bd4e2504bd04.jpg",
+      "PackagePath": "staticwebassets\\uploads\\de84af02-23c4-4d33-b917-bd4e2504bd04.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\decor1.png",
+      "PackagePath": "staticwebassets\\uploads\\decor1.png"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\decor2.png",
+      "PackagePath": "staticwebassets\\uploads\\decor2.png"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\ed00af59-726b-4d70-8d8a-2dda64f32f1f.jpg",
+      "PackagePath": "staticwebassets\\uploads\\ed00af59-726b-4d70-8d8a-2dda64f32f1f.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\ee989f8f-b531-4714-9b7a-2adf3ccf623a.docx",
+      "PackagePath": "staticwebassets\\uploads\\ee989f8f-b531-4714-9b7a-2adf3ccf623a.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\f217f67a-f679-4314-9e1c-98894b473f45.jpg",
+      "PackagePath": "staticwebassets\\uploads\\f217f67a-f679-4314-9e1c-98894b473f45.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\favicon.png",
+      "PackagePath": "staticwebassets\\uploads\\favicon.png"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\fcd10c19-8dae-4edc-b25d-31fdac7ba9e8.docx",
+      "PackagePath": "staticwebassets\\uploads\\fcd10c19-8dae-4edc-b25d-31fdac7ba9e8.docx"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\ffe46c3e-1248-4f76-99c2-8f9b2291fdaf.webp",
+      "PackagePath": "staticwebassets\\uploads\\ffe46c3e-1248-4f76-99c2-8f9b2291fdaf.webp"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\slider1.jpg",
+      "PackagePath": "staticwebassets\\uploads\\slider1.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\slider2.jpg",
+      "PackagePath": "staticwebassets\\uploads\\slider2.jpg"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\slider3.png",
+      "PackagePath": "staticwebassets\\uploads\\slider3.png"
+    },
+    {
+      "Id": "E:\\FROASTERY\\wwwroot\\uploads\\slider4.jpg",
+      "PackagePath": "staticwebassets\\uploads\\slider4.jpg"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.FROASTERY.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.FROASTERY.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.build.FROASTERY.props",
+      "PackagePath": "build\\FROASTERY.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.buildMultiTargeting.FROASTERY.props",
+      "PackagePath": "buildMultiTargeting\\FROASTERY.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.buildTransitive.FROASTERY.props",
+      "PackagePath": "buildTransitive\\FROASTERY.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

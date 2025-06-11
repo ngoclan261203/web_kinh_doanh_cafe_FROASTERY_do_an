@@ -1,0 +1,310 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FROASTERY.Services;
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+@code {
+    private ClaimsPrincipal? _currentUser;
+
+    // Thay đổi từ OnInitializedAsync sang OnAfterRenderAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Lấy trạng thái xác thực của người dùng
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                // In thông tin người dùng và trạng thái xác thực
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                Console.WriteLine("UserId: " + _currentUser?.FindFirst("UserId")?.Value); // In mã người dùng
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("User not authenticated.");
+                    // Chuyển hướng người dùng đến trang đăng nhập nếu chưa xác thực
+                    Navigation.NavigateTo("/dangnhap", true);
+                    return;
+                }
+
+                // Kiểm tra quyền Admin
+                if (!_currentUser.IsInRole("Admin") &&
+                !_currentUser.IsInRole("Kinh doanh") )
+                    
+                {
+                    Console.WriteLine("User does not have Admin role. Redirecting to /home.");
+                    // Chuyển hướng người dùng không phải Admin về trang chủ
+                    Navigation.NavigateTo("/home_admin", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+    }
+}
+
+
+
+@page "/quan-ly-cong-thuc"
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+@using FROASTERY.Components.Shared
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+<style>
+    .description {
+        max-height: 100px; /* Giới hạn chiều cao của mô tả */
+        overflow: hidden; /* Ẩn phần nội dung vượt quá */
+        transition: max-height 0.3s ease-out;
+    }
+
+    .expanded {
+        max-height: none; /* Hiển thị toàn bộ khi mở rộng */
+    }
+</style>
+
+<ErrorDisplay ErrorMessage="@DbErrorMessage" OnClear="ClearErrorMessage" />
+
+<PageTitle>Quản lý Công Thức</PageTitle>
+
+<div class="container mt-4">
+    <h3 class="text-center">Quản lý Công Thức</h3>
+    <h5>@(Editing ? "Chỉnh sửa" : "Thêm mới") Công Thức</h5>
+
+    <EditForm Model="CongThuc" OnValidSubmit="SaveAsync" class="border p-4 rounded shadow bg-light mb-4">
+        <DataAnnotationsValidator />
+        
+        <div class="row">
+            <div class="col-md-4">
+                <label>Mã công thức:</label>
+                <input type="text" @bind="CongThuc.MaCongThuc" class="form-control mb-2" readonly />
+
+                <label>Sản phẩm:</label>
+                <div class="position-relative mb-2 validation-wrapper">
+                    <InputSelect @bind-Value="CongThuc.MaSanPham" class="form-control mb-2">
+                        <option value = "">-- Chọn sản phẩm --</option>
+                        @foreach (var sp in SanPhams)
+                        {
+                            <option value="@sp.MaSanPham">@sp.TenSanPham</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => CongThuc.MaSanPham)" />
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <label>Công thức mô tả:</label>
+                <div class="position-relative mb-2 validation-wrapper">
+                    <InputTextArea @bind-Value="CongThuc.CongThucMoTa" class="form-control mb-2" rows="5" />
+                    <ValidationMessage For="@(() => CongThuc.CongThucMoTa)" />
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3 mt-2">
+            <button type="submit" class="btn btn-save">Lưu</button>
+            <button type="button" class="btn btn-cancel" @onclick="ResetForm">Hủy</button>
+        </div>
+    </EditForm>
+
+    <div class="d-flex justify-content-center mb-4">
+        <input type="text" @bind="SearchQuery" class="form-control w-50" placeholder="Tìm kiếm theo tên sản phẩm..." />
+        <button @onclick="Search" class="btn btn-success ms-2">Tìm kiếm</button>
+    </div>
+
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 100px;">Mã</th>
+                    <th style="width: 400px;">Sản Phẩm</th>
+                    <th>Công Thức</th>
+                    <th style="width: 140px;">Hành Động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var ct in CongThucs)
+                {
+                    <tr>
+                        <td>@ct.MaCongThuc</td>
+                        <td>@(ct.SanPham?.TenSanPham ?? "Không rõ")</td>
+                        <td>
+                            <div class="description @(detailExpandedClass.ContainsKey(ct.MaCongThuc) && detailExpandedClass[ct.MaCongThuc] ? "expanded" : "")">
+                            @((MarkupString)(ct.CongThucMoTa != null ? ct.CongThucMoTa.Replace("\r\n", "<br/>").Replace("\n", "<br/>") : "")) 
+                        </div>
+                        @if (!string.IsNullOrEmpty(ct.CongThucMoTa) && ct.CongThucMoTa.Length > 100) // Chỉ hiển thị nút nếu độ dài > 100 ký tự
+                        {
+                            <button class="btn btn-link p-0 shadow-none fst-italic small" @onclick="() => ToggleDetail(ct.MaCongThuc)">
+                                @(detailExpandedClass.ContainsKey(ct.MaCongThuc) && detailExpandedClass[ct.MaCongThuc] ? "Ẩn bớt" : "Xem thêm")
+                            </button>
+                        }
+                        </td>
+                        <td>
+                            <button @onclick="() => Edit(ct)" class="btn btn-warning">Sửa</button>
+                            <button @onclick="() => DeleteAsync(ct.MaCongThuc)" class="btn btn-danger">Xóa</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private string? DbErrorMessage;
+    private void ClearErrorMessage() => DbErrorMessage = null;
+
+    private List<CongThuc> CongThucs = new();
+    private List<CongThuc> FullCongThucs = new();
+    private List<SanPham> SanPhams = new();
+    private string SearchQuery = string.Empty;
+
+    private CongThuc CongThuc = new();
+    private bool Editing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SanPhams = await DbContext.SanPhams.AsNoTracking().Where(x => !x.DaXoa).ToListAsync();
+        FullCongThucs = await DbContext.CongThucs.Include(c => c.SanPham).Where(x => !x.DaXoa).AsNoTracking().ToListAsync();
+        CongThucs = new List<CongThuc>(FullCongThucs);
+
+        CongThucs.Reverse(); // đảo ngay sau khi load
+    }
+
+    private void Search()
+    {
+        var trimmedQuery = SearchQuery?.Trim();
+        if (string.IsNullOrEmpty(trimmedQuery))
+        {
+            CongThucs = new List<CongThuc>(FullCongThucs);
+        }
+        else
+        {
+            CongThucs = FullCongThucs.Where(ct =>
+                ct.SanPham != null &&
+                ct.SanPham.TenSanPham.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase)
+            ).ToList();
+        }
+        CongThucs.Reverse();
+    }
+
+    private void Edit(CongThuc ct)
+    {
+        CongThuc = new CongThuc
+        {
+            MaCongThuc = ct.MaCongThuc,
+            MaSanPham = ct.MaSanPham,
+            CongThucMoTa = ct.CongThucMoTa
+        };
+        Editing = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        DbErrorMessage = null;
+
+        // Kiểm tra trùng lặp sản phẩm (1 sản phẩm chỉ có 1 công thức)
+        var isDuplicate = await DbContext.CongThucs
+            .AnyAsync(x => x.MaSanPham == CongThuc.MaSanPham && x.MaCongThuc != CongThuc.MaCongThuc);
+        if (isDuplicate)
+        {
+            DbErrorMessage = "Sản phẩm này đã có công thức.";
+            return;
+        }
+        if (CongThuc.MaSanPham == 0)
+            {
+                DbErrorMessage = "Vui lòng chọn sản phẩm.";
+                return;
+            }
+
+        if (Editing)
+        {
+            var entity = await DbContext.CongThucs.FindAsync(CongThuc.MaCongThuc);
+            if (entity != null)
+            {
+                entity.MaSanPham = CongThuc.MaSanPham;
+                entity.CongThucMoTa = CongThuc.CongThucMoTa;
+            }
+        }
+        else
+        {
+            try
+            {
+                await DbContext.CongThucs.AddAsync(new CongThuc
+                {
+                    MaSanPham = CongThuc.MaSanPham,
+                    CongThucMoTa = CongThuc.CongThucMoTa
+                });
+            }
+            catch (Exception ex)
+            {
+                DbErrorMessage = "Lưu dữ liệu thất bại: " + ex.Message;
+                return;
+            }
+        }
+        await DbContext.SaveChangesAsync();
+         await OnInitializedAsync();
+        ResetForm();
+    }
+
+    
+    private async Task DeleteAsync(int id)
+    {
+        var entity = await DbContext.CongThucs.FindAsync(id);
+        if (entity != null)
+        {
+            entity.DaXoa = true;
+            await DbContext.SaveChangesAsync();
+            // Reload danh sách những loại chưa bị xóa
+           await OnInitializedAsync();
+        }
+    }
+    private void ResetForm()
+    {
+        CongThuc = new CongThuc();
+        Editing = false;
+        DbErrorMessage = null;
+    }
+
+    // =====code xử lý mở rộng mô tả và chi tiết=====
+    private Dictionary<int, bool> descriptionExpandedClass = new();
+    private Dictionary<int, bool> detailExpandedClass = new();
+
+    private void ToggleDescription(int Id)
+    {
+        if (descriptionExpandedClass.ContainsKey(Id))
+        {
+            descriptionExpandedClass[Id] = !descriptionExpandedClass[Id];
+        }
+        else
+        {
+            descriptionExpandedClass[Id] = true;
+        }
+    }
+
+    private void ToggleDetail(int Id)
+    {
+        if (detailExpandedClass.ContainsKey(Id))
+        {
+            detailExpandedClass[Id] = !detailExpandedClass[Id];
+        }
+        else
+        {
+            detailExpandedClass[Id] = true;
+        }
+    }
+}

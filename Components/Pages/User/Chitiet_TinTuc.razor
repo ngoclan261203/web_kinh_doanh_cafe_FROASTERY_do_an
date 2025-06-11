@@ -1,0 +1,388 @@
+@page "/chitiettintuc/{MaTinTuc:int}"
+@inject TinTucService TinTucService
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data;
+@using Microsoft.EntityFrameworkCore;
+@using System.IO;
+@using WordDocument = Aspose.Words.Document;
+@using PdfDocument = Aspose.Pdf.Document;
+@inject AppDbContext DbContext
+@inject NavigationManager NavigationManager
+@inject IWebHostEnvironment Environment
+@using System.Text
+
+<PageTitle>@tinTuc?.TieuDe</PageTitle>
+
+<style scoped>
+    
+    .news-detail-layout {
+        display: flex;
+        margin: 10px auto;
+        gap: 20px;
+    }
+
+    .news-detail-content-left {
+        flex: 3;
+        padding-right: 20px;
+        padding-left: 100px;
+        padding-top: 50px;
+    }
+
+    .news-detail-sidebar-right {
+        flex: 1;
+        padding-left: 20px;
+        border-left: 1px solid #ddd;
+        padding-right: 100px;
+        padding-top: 50px;
+    }
+
+
+    .news-detail-title {
+        font-size: 2.5em;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 20px;
+    }
+
+    .news-detail-date {
+        font-size: 1.5rem;
+        color: #777;
+        margin-bottom: 20px;
+    }
+
+    .news-detail-image {
+        width: 100%;
+        max-height: none;
+        object-fit: contain;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .news-detail-content {
+        font-size: 1em;
+        color: #555;
+        line-height: 1.7;
+        white-space: pre-line;
+        margin-bottom: 20px;
+    }
+
+    .back-button {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #06622f;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        margin-top: 20px;
+        transition: background-color 0.3s ease;
+    }
+
+    .back-button:hover {
+        background-color: #268e55;
+    }
+
+    .no-image {
+        background-color: #eee;
+        color: #777;
+        text-align: center;
+        padding: 50px 0;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .related-news-title {
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 10px;
+        
+    }
+
+
+    .related-news-item {
+        padding: 0 10px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .related-news-item:last-child {
+        border-bottom: none;
+    }
+
+    .related-news-item:hover {
+        background-color: #f0f0f0;
+    }
+
+    .related-news-item a {
+        text-decoration: none;
+        color: #555;
+        display: block;
+    }
+
+    .related-news-item a:hover {
+        color: #06622f;
+    }
+
+
+    .related-news-item-with-image:last-child {
+        border-bottom: none;
+    }
+
+    .related-news-item-with-image:hover {
+        background-color: #f0f0f0;
+    }
+
+
+
+    .related-news-item-with-image a {
+        text-decoration: none;
+        color: #555;
+        display: block;
+        font-size: 0.9em; 
+        line-height: 1.2;
+    }.related-news-item-container {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.related-news-item-container:last-child {
+    border-bottom: none;
+}
+
+.related-news-item-container:hover {
+    background-color: #f0f0f0;
+}
+
+.related-news-image-full { 
+    width: 100%;
+    height: 280px;
+    border-radius: 5px;
+    object-fit: cover;
+    margin-bottom: 5px;
+}
+
+.related-news-title-below { 
+    text-decoration: none;
+    color: #373232;
+    font-size: 1.3em;
+    line-height: 1.2;
+    display: block;
+}
+
+.related-news-title-below:hover {
+    color: #06622f;
+}
+
+    .related-news-item-with-image a:hover {
+        color: #06622f;
+    }
+.html-render-wrapper p,
+.html-render-wrapper h1,
+.html-render-wrapper span {
+    font-family: inherit; /* Kế thừa font chữ từ phần tử cha */
+    font-size: 1rem; /* Đặt kích thước font chữ cơ bản */
+    color: inherit;
+    line-height: inherit;
+}
+
+.html-render-wrapper * {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    line-height: inherit;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    /* Các thuộc tính reset khác mà bạn thấy cần thiết */
+}
+
+</style>
+
+@if (tinTuc == null)
+{
+    <p>Đang tải tin tức...</p>
+}
+else
+{
+    <div class="news-detail-layout">
+        <div class="news-detail-content-left">
+            <h2 class="news-detail-title">@tinTuc.TieuDe</h2>
+            <p class="news-detail-date">Ngày đăng: @tinTuc.ThoiGian.ToString("dddd, dd MMMM, yyyy HH:mm")</p>
+@* 
+            @if (!string.IsNullOrEmpty(tinTuc.HinhAnh))
+            {
+                <img src="@tinTuc.HinhAnh" alt="@tinTuc.TieuDe" class="news-detail-image" onerror="this.src='images/default-news-large.png';" />
+            }
+            else
+            {
+                <div class="no-image">Không có hình ảnh</div>
+            } *@
+
+            @if (!string.IsNullOrEmpty(tinTuc.FileDinhKem))
+            {
+                @if (isFileContent && !string.IsNullOrEmpty(htmlContent))
+                {
+                    <div class="html-render-wrapper">
+                        @((MarkupString)htmlContent)
+                    </div>
+                }
+                else
+                {
+                    <p>Định dạng file không hỗ trợ hiển thị trực tiếp.</p>
+                    <a href="@tinTuc.FileDinhKem" target="_blank" class="btn btn-secondary btn-sm">Tải xuống file</a>
+                }
+            }
+            @* else
+            {
+                <p class="news-detail-content">@tinTuc?.NoiDung</p>
+            } *@
+
+            <a href="/tintuc" class="back-button">Quay lại trang Tin Tức</a>
+        </div>
+    <div class="news-detail-sidebar-right">
+        <h3 class="related-news-title">Bài viết khác</h3>
+        @if (relatedNews?.Any() == true)
+        {
+            @foreach (var related in relatedNews.Where(r => r.MaTinTuc != tinTuc?.MaTinTuc).Take(5))
+            {
+                <div class="related-news-item-container" @onclick="() => NavigateToDetail(related.MaTinTuc)">
+                    @if (!string.IsNullOrEmpty(related.HinhAnh))
+                    {
+                        <img src="@related.HinhAnh" alt="@related.TieuDe" class="related-news-image-full" onerror="this.src='images/default-news-small.png';" />
+                    }
+                    <a href="javascript:void(0)" class="related-news-title-below">@related.TieuDe</a>
+                </div>
+            }
+        }
+        else
+        {
+            <p>Không có bài viết liên quan.</p>
+        }
+    </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int MaTinTuc { get; set; }
+
+    private TinTuc? tinTuc;
+    private List<TinTuc>? relatedNews;
+    private string? htmlContent;
+    private bool isFileContent = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        tinTuc = await DbContext.TinTucs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.MaTinTuc == MaTinTuc);
+
+        if (tinTuc != null)
+        {
+            relatedNews = await DbContext.TinTucs.Where(p => !p.DaXoa)
+                .Where(t => t.MaLoaiTin == tinTuc.MaLoaiTin && t.MaTinTuc != MaTinTuc)
+                .OrderByDescending(t => t.ThoiGian)
+                .Take(5)
+                .AsNoTracking()
+                .ToListAsync();
+
+            if (relatedNews.Count < 5)
+            {
+                var more = await DbContext.TinTucs.Where(p => !p.DaXoa)
+                    .Where(t => t.MaTinTuc != MaTinTuc && !relatedNews.Select(r => r.MaTinTuc).Contains(t.MaTinTuc))
+                    .OrderByDescending(t => t.ThoiGian)
+                    .Take(5 - relatedNews.Count)
+                    .AsNoTracking()
+                    .ToListAsync();
+
+                relatedNews.AddRange(more);
+            }
+
+            if (!string.IsNullOrEmpty(tinTuc.FileDinhKem))
+            {
+                string ext = Path.GetExtension(tinTuc.FileDinhKem).ToLower();
+                var path = Path.Combine(Environment.WebRootPath, tinTuc.FileDinhKem.TrimStart('/'));
+
+                if (File.Exists(path))
+                {
+                    switch (ext)
+                    {
+                        case ".txt":
+                        case ".html":
+                            htmlContent = File.ReadAllText(path, Encoding.UTF8);
+                            isFileContent = true;
+                            break;
+                        case ".doc":
+                        case ".docx":
+                            htmlContent = ConvertWordToHtml(path);
+                            isFileContent = true;
+                            break;
+                        case ".pdf":
+                            htmlContent = ConvertPdfToHtml(path);
+                            isFileContent = true;
+                            break;
+                        default:
+                            isFileContent = false;
+                            break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            relatedNews = new();
+        }
+    }
+
+    private string ConvertWordToHtml(string filePath)
+    {
+        try
+        {
+            var doc = new WordDocument(filePath);
+            var options = new Aspose.Words.Saving.HtmlSaveOptions
+            {
+                ExportImagesAsBase64 = true
+            };
+
+            using var stream = new MemoryStream();
+            doc.Save(stream, options);
+            stream.Position = 0;
+            using var reader = new StreamReader(stream);
+            return reader.ReadToEnd();
+        }
+        catch (Exception ex)
+        {
+            return $"<p>Lỗi đọc file Word: {ex.Message}</p>";
+        }
+    }
+
+    private string ConvertPdfToHtml(string filePath)
+    {
+        try
+        {
+            using var pdf = new PdfDocument(filePath);
+            using var stream = new MemoryStream();
+            pdf.Save(stream, Aspose.Pdf.SaveFormat.Html);
+            stream.Position = 0;
+            using var reader = new StreamReader(stream);
+            return reader.ReadToEnd();
+        }
+        catch (Exception ex)
+        {
+            return $"<p>Lỗi đọc file PDF: {ex.Message}</p>";
+        }
+    }
+
+    private void NavigateToDetail(int maTinTuc)
+    {
+        NavigationManager.NavigateTo($"/chitiettintuc/{maTinTuc}");
+    }
+}
+<Footer />

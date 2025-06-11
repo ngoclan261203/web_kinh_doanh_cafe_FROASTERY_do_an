@@ -1,0 +1,84 @@
+@page "/loaisanpham"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+@using FROASTERY.Components.Shared
+@using System.Security.Claims
+@using FROASTERY.Services;
+
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+
+<PageTitle>Quản lý Nguyên Liệu</PageTitle>
+
+<div class="container mt-4">
+    <h3 class="text-center">Quản lý Nguyên Liệu</h3>
+   
+</div>
+<!-- Nút Đăng xuất -->
+    <div class="text-end mt-3">
+        <button @onclick="NavigateToLogout" class="btn btn-danger">Đăng Xuất</button>
+    </div>
+
+
+
+
+@code {
+    // Phương thức chuyển hướng người dùng đến trang đăng xuất
+    private void NavigateToLogout()
+    {
+        Navigation.NavigateTo("/logout");
+    }
+    private ClaimsPrincipal? _currentUser;
+
+   
+
+    // Thay đổi từ OnInitializedAsync sang OnAfterRenderAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Lấy trạng thái xác thực của người dùng
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                // In thông tin người dùng và trạng thái xác thực
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("User not authenticated.");
+                    // Chuyển hướng người dùng đến trang đăng nhập nếu chưa xác thực
+                    Navigation.NavigateTo("/login", true);
+                    return;
+                }
+
+                // Kiểm tra quyền Admin
+                if (!_currentUser.IsInRole("Admin"))
+                {
+                    Console.WriteLine("User does not have Admin role. Redirecting to /home.");
+                    // Chuyển hướng người dùng không phải Admin về trang chủ
+                    Navigation.NavigateTo("/home", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+    }
+    
+}

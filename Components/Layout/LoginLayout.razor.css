@@ -1,0 +1,19 @@
+.login-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-image: url('./images/backlog.png'); /* Đường dẫn đến ảnh của bạn */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-color: #f8f9fa; /* Màu nền dự phòng nếu ảnh không tải được */
+}
+
+.login-content {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}

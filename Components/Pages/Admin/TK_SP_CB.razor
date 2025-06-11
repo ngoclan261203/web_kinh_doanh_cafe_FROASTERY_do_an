@@ -1,0 +1,191 @@
+@page "/thong-ke-che-bien"
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@inject IWebHostEnvironment Environment
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+@using System.IO
+@using FROASTERY.Components.Shared
+@using System
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+
+<PageTitle>Thống Kê Chế Biến</PageTitle>
+<div class="container mt-4">
+<h3 class="text-center mb-4" >Thống Kê Sản Phẩm Chế Biến</h3>
+<br>
+<div class="card p-3 mb-3 shadow-sm">
+    <div class="row">
+        <div class="col-md-3">
+            <label>Từ ngày:</label>
+            <InputDate @bind-Value="tuNgay" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label>Đến ngày:</label>
+            <InputDate @bind-Value="denNgay" class="form-control" />
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button class="btn btn-success" @onclick="ThongKeTheoKhoangNgay">Thống Kê</button>
+        </div>
+            @if (hienThiNutInBaoCao)
+            {
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-success" @onclick="InBaoCao">In Báo Cáo</button>
+                </div>
+            }
+    </div>
+</div>
+</div>
+<div id="baoCaoIn">
+@if (thongKeSanPham != null || thongKeNguyenLieu != null)
+{
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="alert alert-primary">
+                <strong>Tổng số lượng sản phẩm đã chế biến:</strong> @tongSanPham
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="alert alert-info">
+                <strong>Tổng nguyên liệu đã sử dụng:</strong> @tongNguyenLieu
+            </div>
+        </div>
+    </div>
+
+    <h4>Thống kê sản phẩm</h4>
+     <table class="table">
+        <thead>
+            <tr>
+                <th>Mã sản phẩm</th>
+                <th>Tên sản phẩm</th>
+                <th>Số lượng</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (thongKeSanPham != null)
+            {
+                foreach (var item in thongKeSanPham)
+                {
+                    <tr>
+                        <td>@item.MaSanPham</td>
+                        <td>@item.TenSanPham</td>
+                        <td>@item.SoLuong</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="3">Không có dữ liệu thống kê sản phẩm.</td>
+                </tr>
+            }
+        </tbody>
+     </table>
+    <h4>Thống kê nguyên liệu</h4>
+     <table class="table">
+        <thead>
+            <tr>
+                <th>Mã nguyên liệu</th>
+                <th>Tên nguyên liệu</th>
+                <th>Số lượng</th>
+                <th>Đơn vị tính</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (thongKeNguyenLieu != null)
+            {
+                foreach (var item in thongKeNguyenLieu)
+                {
+                    <tr>
+                        <td>@item.MaNguyenLieu</td>
+                        <td>@item.TenNguyenLieu</td>
+                        <td>@item.SoLuong</td>
+                        <td>@item.DonViTinh</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="4">Không có dữ liệu nguyên liệu.</td>
+                </tr>
+            }
+        </tbody>
+     </table>
+}
+</div>
+@code {
+    private DateTime tuNgay = DateTime.Today;
+    private DateTime denNgay = DateTime.Today;
+    private int tongSanPham = 0;
+    private float tongNguyenLieu = 0;
+    
+    private List<ThongKeSanPhamCheBien>? thongKeSanPham;
+    private List<ThongKeNguyenLieuCheBien>? thongKeNguyenLieu;
+    private bool hienThiNutInBaoCao = false;
+    [Inject]
+    public IJSRuntime JS { get; set; } = default!;    
+    public class ThongKeSanPhamCheBien
+    {
+        public int MaSanPham { get; set; }
+        public string? TenSanPham { get; set; }
+        public int SoLuong { get; set; }
+    }
+
+    public class ThongKeNguyenLieuCheBien
+    {
+        public int MaNguyenLieu { get; set; }
+        public string ?TenNguyenLieu { get; set; }
+        public float SoLuong { get; set; }
+        public string ?DonViTinh {get; set;}
+    }
+
+    private async Task ThongKeTheoKhoangNgay()
+    {
+        thongKeSanPham = await DbContext.CheBiens
+            .Where(cb => cb.ThoiGian.Date >= tuNgay && cb.ThoiGian.Date <= denNgay)
+            .GroupBy(cb => cb.MaSanPham)
+            .Select(g => new ThongKeSanPhamCheBien
+            {
+                MaSanPham = g.Key,
+                TenSanPham = DbContext.SanPhams.FirstOrDefault(sp => sp.MaSanPham == g.Key)!.TenSanPham,
+                SoLuong = g.Sum(cb => cb.SoLuongSP) ?? 0
+            })
+            .ToListAsync();
+
+        thongKeNguyenLieu = await DbContext.CheBiens
+            .Where(cb => cb.ThoiGian.Date >= tuNgay && cb.ThoiGian.Date <= denNgay)
+            .Join(
+                DbContext.CTCBNguyenLieus,
+                cheBien => cheBien.MaCheBien,
+                ctcb => ctcb.MaCheBien,
+                (cheBien, ctcb) => new { cheBien, ctcb }
+            )
+            .GroupBy(g => g.ctcb.MaNguyenLieu)
+            .Select(g => new ThongKeNguyenLieuCheBien
+            {
+                MaNguyenLieu = g.Key,
+                TenNguyenLieu = DbContext.NguyenLieus.FirstOrDefault(nl => nl.MaNguyenLieu == g.Key)!.TenNguyenLieu,
+                SoLuong = g.Sum(item => item.ctcb.SoLuong) ?? 0,
+                DonViTinh = DbContext.NguyenLieus.FirstOrDefault(nl => nl.MaNguyenLieu == g.Key)!.DonViTinh
+            })
+            .ToListAsync();
+
+        tongSanPham = thongKeSanPham.Sum(sp => sp.SoLuong);
+        tongNguyenLieu = thongKeNguyenLieu.Sum(nl => nl.SoLuong);
+        hienThiNutInBaoCao = true;
+        StateHasChanged();
+    }
+        private async Task InBaoCao()
+    {
+        try
+        {
+           await JS.InvokeVoidAsync("printElementById3", "baoCaoIn");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi in báo cáo: " + ex.Message);
+        }
+    }
+}

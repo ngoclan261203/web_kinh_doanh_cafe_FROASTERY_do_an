@@ -1,0 +1,49 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="typeof(Program).Assembly">
+        <Found Context="routeData">
+            <LayoutView Layout="@GetLayout(routeData.PageType)">
+                <RouteView RouteData="@routeData" />
+            </LayoutView>
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <LayoutView Layout="typeof(Layout.UserLayout)">
+                <p>Trang không tồn tại.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>
+
+
+
+
+@* //-----dòng trên *@
+@code {
+    private Type GetLayout(Type pageType)
+    {
+        var ns = pageType?.Namespace ?? string.Empty;
+        @* Biến ns là một chuỗi chứa namespace, ví dụ: "MyApp.Pages.Admin.Dashboard". *@
+
+        if (ns.Contains("Admin"))
+        {
+            return typeof(Layout.AdminLayout);
+        }else if(ns.Contains("User")){
+            return typeof(Layout.UserLayout);
+        }else{
+             return typeof(Layout.LoginLayout);
+        }
+
+      
+    }
+}
+
+
+@* code cũ  *@
+@* <Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>  *@

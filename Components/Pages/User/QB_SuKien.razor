@@ -1,0 +1,72 @@
+@* @page "/events"
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data;
+@using Microsoft.EntityFrameworkCore;
+@inject AppDbContext DbContext
+
+<PageTitle>Sự kiện</PageTitle>
+
+<h1  class="text-center">Danh sách sự kiện</h1>
+
+@if (events == null)
+{
+    <p>Đang tải sự kiện...</p>
+}
+else if (!events.Any())
+{
+    <p>Không có sự kiện nào.</p>
+}
+else
+{
+    <div class="row">
+        @foreach (var eventItem in events) 
+        {
+            <div class="col-md-4 mb-4">
+                <div class="card shadow">
+                    @if (!string.IsNullOrEmpty(eventItem.HinhAnh))
+                    {
+                        <img src="@eventItem.HinhAnh" class="card-img-top" alt="@eventItem.TieuDe">
+                    }
+                    <div class="card-body">
+                        <h5 class="card-title">@eventItem.TieuDe</h5>
+                        <p class="card-text">Thời gian: @eventItem.ThoiGianDienRa</p>
+                        <p class="card-text">
+                            Trạng thái:
+                            @switch (eventItem.TrangThai)
+                            {
+                                case 0:
+                                    <span>Chưa chọn</span>
+                                    break;
+                                case 1:
+                                    <span>Đã diễn ra</span>
+                                    break;
+                                case 2:
+                                    <span>Đang diễn ra</span>
+                                    break;
+                                case 3:
+                                    <span>Sắp diễn ra</span>
+                                    break;
+                                default:
+                                    <span>Không xác định</span>
+                                    break;
+                            }
+                        </p>
+                        <a href="/dangki/@eventItem.MaSuKien" class="btn btn-primary">Đăng kí tham gia</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<SuKien>? events;
+
+    protected override async Task OnInitializedAsync()
+    {
+        events = await DbContext.SuKiens
+            .AsNoTracking()
+            .ToListAsync();
+    }
+} *@

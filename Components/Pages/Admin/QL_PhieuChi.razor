@@ -1,0 +1,408 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FROASTERY.Services;
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+@code {
+    private ClaimsPrincipal? _currentUser;
+
+    // Thay đổi từ OnInitializedAsync sang OnAfterRenderAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Lấy trạng thái xác thực của người dùng
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                // In thông tin người dùng và trạng thái xác thực
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                Console.WriteLine("UserId: " + _currentUser?.FindFirst("UserId")?.Value); // In mã người dùng
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("User not authenticated.");
+                    // Chuyển hướng người dùng đến trang đăng nhập nếu chưa xác thực
+                    Navigation.NavigateTo("/dangnhap", true);
+                    return;
+                }
+
+                // Kiểm tra quyền Admin
+                if (!_currentUser.IsInRole("Admin") &&
+                !_currentUser.IsInRole("Kế toán") )
+                    
+                {
+                    Console.WriteLine("User does not have Admin role. Redirecting to /home.");
+                    // Chuyển hướng người dùng không phải Admin về trang chủ
+                    Navigation.NavigateTo("/home_admin", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+    }
+}
+
+
+
+@page "/quan-ly-phieu-chi"
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+@using FROASTERY.Components.Shared
+
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+
+<ErrorDisplay ErrorMessage="@DbErrorMessage" OnClear="ClearErrorMessage" />
+
+<PageTitle>Quản lý Phiếu Chi</PageTitle>
+
+<div class="container mt-4">
+    <h3 class="text-center">Quản lý Phiếu Chi</h3>
+    <h5>@(Editing ? "Chỉnh sửa" : "Thêm mới") Phiếu Chi</h5>
+
+    <EditForm Model="PhieuChi" OnValidSubmit="SaveAsync" class="border p-4 rounded shadow bg-light mb-4">
+        <DataAnnotationsValidator />
+
+        <div class="row">
+            <div class="col-md-6">
+                <label>Mã phiếu Chi:</label>
+                <input type="text" @bind="PhieuChi.MaPhieuChi" class="form-control mb-2" readonly />
+
+                <label>Thời gian:</label>
+                <input type="datetime-local" @bind="PhieuChi.ThoiGian" class="form-control mb-2" />
+                <label>Đối tác:</label>
+                    <InputSelect @bind-Value="PhieuChi.MaDoiTac" class="form-control mb-2">
+                        <option value="">-- Chọn đối tác --</option>
+                        @foreach (var dt in DoiTacs)
+                        {
+                            <option value="@dt.MaDoiTac">@dt.Ten</option>
+                        }
+                    </InputSelect>
+            </div>
+
+            <div class="col-md-6">
+                <label>Số tiền:</label>
+                <div class="position-relative mb-2 validation-wrapper">
+                    <InputNumber @bind-Value="PhieuChi.SoTien" class="form-control mb-2" />
+                <ValidationMessage For="@(() => PhieuChi.SoTien)" />
+                </div>
+                <label>Nội dung:</label>
+                <InputTextArea @bind-Value="PhieuChi.NoiDung" class="form-control mb-2" rows="4" />
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3 mt-2">
+            <button type="submit" class="btn btn-save">Lưu</button>
+            <button type="button" class="btn btn-cancel" @onclick="ResetForm">Hủy</button>
+        </div>
+    </EditForm>
+
+    <div class="card p-3 mb-4 shadow-sm">
+    <div class="row g-2 align-items-end">
+        <!-- Ô tìm kiếm từ khóa -->
+        <div class="col-md-4">
+            <label class="form-label">Tìm kiếm</label>
+            <input type="text" @bind="SearchQuery" class="form-control"
+                   placeholder="Tìm kiếm theo mã phiếu, đối tác..." />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Tổng tiền từ</label>
+            <input type="number" @bind="MinTongTien" class="form-control" step="0.01" placeholder="0" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Tổng tiền đến</label>
+            <input type="number" @bind="MaxTongTien" class="form-control" step="0.01" placeholder="∞" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Từ ngày</label>
+            <input type="date" @bind="StartDate" class="form-control" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Đến ngày</label>
+            <input type="date" @bind="EndDate" class="form-control" />
+        </div>
+    </div>
+
+    <!-- Nút tìm kiếm nằm dưới và căn phải -->
+    <div class="d-flex justify-content-end mt-3">
+        <button @onclick="Search" class="btn btn-success px-4">Tìm kiếm</button>
+    </div>
+</div>
+
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 70px;">Mã</th>
+                    <th style="width: 160px;">Thời Gian</th>
+                    <th style="width: 210px;">Đối Tác</th>
+                    <th style="width: 150px;">Số Tiền</th>
+                    <th>Nội Dung</th>
+                    <th style="width: 140px;">Hành Động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var pt in PhieuChis)
+                {
+                    <tr>
+                        <td>@pt.MaPhieuChi</td>
+                        <td>@pt.ThoiGian.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td title="Địa chỉ: @pt.DoiTac?.DiaChi, Thông tin liên lạc: @pt.DoiTac?.ThongTinLienLac">
+                            @(pt.DoiTac?.Ten ?? "")</td>
+                        <td>@(pt.SoTien != 0 ? pt.SoTien.ToString("N0") : "0") VNĐ</td>
+                        <td>@pt.NoiDung</td>
+                        <td>
+                            <button @onclick="() => Edit(pt)" class="btn btn-warning">Sửa</button>
+                            <button @onclick="() => DeleteAsync(pt.MaPhieuChi)" class="btn btn-danger">Xóa</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private string? DbErrorMessage;
+    private void ClearErrorMessage() => DbErrorMessage = null;
+
+    private List<PhieuChi> PhieuChis = new();
+    private List<PhieuChi> FullPhieuChis = new();
+    private List<DoiTac> DoiTacs = new();
+
+    private string? SearchQuery { get; set; }
+    private float? MinTongTien { get; set; }
+    private float? MaxTongTien { get; set; }
+    private DateTime? StartDate { get; set; }
+    private DateTime? EndDate { get; set; }
+
+    private PhieuChi PhieuChi = new();
+    private bool Editing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        DoiTacs = await DbContext.DoiTacs
+        .Where(d => d.NhaCungCap == true && !d.DaXoa)
+        .AsNoTracking()
+        .ToListAsync();
+        FullPhieuChis = await DbContext.PhieuChis.Include(p => p.DoiTac).Where(p => !p.DaXoa).AsNoTracking().ToListAsync();
+        PhieuChis = new List<PhieuChi>(FullPhieuChis);
+        PhieuChis.Reverse(); // đảo ngay sau khi load
+        
+    }
+    
+    @* private void Edit(PhieuChi pt)
+    {
+        PhieuChi = new PhieuChi
+        {
+            MaPhieuChi = pt.MaPhieuChi,
+            MaDoiTac = pt.MaDoiTac,
+            ThoiGian = pt.ThoiGian,
+            SoTien = pt.SoTien,
+            NoiDung = pt.NoiDung
+        };
+        Editing = true;
+    } *@
+
+    private void Edit(PhieuChi pt)
+{
+    try
+    {
+        if (pt == null)
+        {
+            DbErrorMessage = "Phiếu chi không hợp lệ.";
+            return;
+        }
+
+        PhieuChi = new PhieuChi
+        {
+            MaPhieuChi = pt.MaPhieuChi,
+            MaDoiTac = pt.MaDoiTac,
+            ThoiGian = pt.ThoiGian,
+            SoTien = pt.SoTien,
+            NoiDung = pt.NoiDung
+        };
+        Editing = true;
+    }
+    catch (Exception ex)
+    {
+        DbErrorMessage = "Lỗi khi chỉnh sửa phiếu chi: " + ex.Message;
+        Console.WriteLine("Edit error: " + ex);
+    }
+}
+
+
+    private async Task SaveAsync()
+    {
+        DbErrorMessage = null;
+
+        if (PhieuChi.MaDoiTac == 0)
+        {
+            DbErrorMessage = "Vui lòng chọn đối tác.";
+            return;
+        }
+
+        if (Editing)
+        {
+            var entity = await DbContext.PhieuChis.FindAsync(PhieuChi.MaPhieuChi);
+            if (entity != null)
+            {
+                float tongTienCu = entity.SoTien;
+                float tongTienMoi = PhieuChi.SoTien;
+                int? maDoiTacCu = entity.MaDoiTac;
+                int? maDoiTacMoi = PhieuChi.MaDoiTac;
+                await CapNhatDuNoDoiTacAsync(maDoiTacCu, maDoiTacMoi, tongTienCu, tongTienMoi);
+
+
+                entity.MaDoiTac = PhieuChi.MaDoiTac;
+                entity.ThoiGian = PhieuChi.ThoiGian;
+                entity.SoTien = PhieuChi.SoTien;
+                entity.NoiDung = PhieuChi.NoiDung;
+
+                 await DbContext.SaveChangesAsync();
+            }
+        }
+        else
+        {
+            try
+            {
+            await DbContext.PhieuChis.AddAsync(new PhieuChi
+            {
+                MaDoiTac = PhieuChi.MaDoiTac,
+                ThoiGian = PhieuChi.ThoiGian,
+                SoTien = PhieuChi.SoTien,
+                NoiDung = PhieuChi.NoiDung
+            });
+            await CapNhatDuNoDoiTacAsync(null, PhieuChi.MaDoiTac, 0f, PhieuChi.SoTien);
+            await DbContext.SaveChangesAsync();
+            }catch (Exception ex)
+            {
+                DbErrorMessage = "Lưu dữ liệu thất bại: " + ex.Message;
+                return;
+            }
+        }
+
+        
+       await OnInitializedAsync();
+        ResetForm();
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        var entity = await DbContext.PhieuChis.FindAsync(id);
+        if (entity != null)
+        {
+            float tongTienCu = entity.SoTien ;
+            int? maDoiTacCu = entity.MaDoiTac;
+            // Giảm dư nợ đối tác trước khi xóa phiếu
+        await CapNhatDuNoDoiTacAsync(maDoiTacCu, null, tongTienCu, 0f);
+        await DbContext.SaveChangesAsync();
+
+            @* DbContext.PhieuThus.Remove(entity); *@
+            entity.DaXoa = true;
+            await DbContext.SaveChangesAsync();
+           await OnInitializedAsync();
+        }
+    }
+   
+
+    private async Task CapNhatDuNoDoiTacAsync(int? maDoiTacCu, int? maDoiTacMoi, float tongTienCu, float tongTienMoi)
+{
+    // 1. Cập nhật đối tác mới (nếu có)
+    if (maDoiTacMoi.HasValue)
+    {
+        var doiTacMoi = await DbContext.DoiTacs.FirstOrDefaultAsync(dt => dt.MaDoiTac == maDoiTacMoi.Value);
+        if (doiTacMoi != null)
+        {
+            float chenhlech = tongTienMoi;
+            if (maDoiTacCu == maDoiTacMoi)
+            {
+                // Nếu không đổi đối tác, chỉ tính chênh lệch
+                chenhlech = tongTienMoi - tongTienCu;
+            }
+
+            Console.WriteLine($"[Cập nhật] Đối tác mới {doiTacMoi.MaDoiTac}: cũ {tongTienCu}, mới {tongTienMoi}, chênh lệch {chenhlech}");
+
+            doiTacMoi.DuNo = (float?)Math.Round((doiTacMoi.DuNo ?? 0f) + chenhlech, 2);
+            // Cho phép âm → không ép về 0
+        }
+        else
+        {
+            Console.WriteLine($"[Không tìm thấy] Đối tác mới {maDoiTacMoi.Value}");
+        }
+    }
+
+    // 2. Nếu đối tác cũ khác đối tác mới → giảm dư nợ đối tác cũ
+    if (maDoiTacCu.HasValue && maDoiTacCu != maDoiTacMoi)
+    {
+        var doiTacCu = await DbContext.DoiTacs.FirstOrDefaultAsync(dt => dt.MaDoiTac == maDoiTacCu.Value);
+        if (doiTacCu != null)
+        {
+            Console.WriteLine($"[Giảm] Đối tác cũ {doiTacCu.MaDoiTac}: giảm {tongTienCu}");
+            doiTacCu.DuNo = (float?)Math.Round((doiTacCu.DuNo ?? 0f) - tongTienCu , 2);
+            // Cho phép âm → không ép về 0
+        }
+        else
+        {
+            Console.WriteLine($"[Không tìm thấy] Đối tác cũ {maDoiTacCu.Value}");
+        }
+    }
+}
+
+
+// Hàm tìm kiếm
+    private void Search()
+    {
+        var trimmedQuery = SearchQuery?.Trim();
+        
+            PhieuChis = FullPhieuChis.Where(item =>
+                (
+                     // Nếu không nhập gì thì bỏ qua điều kiện tìm từ khóa
+                    string.IsNullOrWhiteSpace(trimmedQuery) ||
+                    item.MaPhieuChi.ToString().Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) ||
+                    (item.DoiTac?.Ten?.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) == true) 
+                ) 
+                &&
+                (
+                    // Lọc theo khoảng thời gian
+                    (!StartDate.HasValue || item.ThoiGian.Date >= StartDate.Value.Date) &&
+                    (!EndDate.HasValue || ( item.ThoiGian.Date <= EndDate.Value.Date))
+                )
+                &&
+                (
+                    // Lọc theo tổng tiền từ Min đến Max
+                    (!MinTongTien.HasValue || item.SoTien >= MinTongTien) &&
+                    (!MaxTongTien.HasValue || item.SoTien <= MaxTongTien)
+                )
+
+            ).ToList();
+         PhieuChis.Reverse(); // đảo ngay sau khi load
+        
+    }
+
+    private void ResetForm()
+    {
+        PhieuChi = new PhieuChi();
+        Editing = false;
+        DbErrorMessage = null;
+    }
+}

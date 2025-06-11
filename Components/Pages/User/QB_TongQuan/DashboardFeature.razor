@@ -1,0 +1,105 @@
+@page "/feature-dashboard"
+@using FROASTERY.Models
+
+<section id='feature'>
+    <div class='container'>
+        <div class='feature-grid'>
+            @foreach (var item in Features)
+            {
+                <article class='feature-item'>
+                    <div class='feature-icon-wrapper'>
+                        <img alt='feature' src=@item.ImageUrl />
+                    </div>
+                    <h3 class='feature-title'>@item.Title</h3>
+                    <p class='feature-description'>@item.Description</p>
+                </article>
+            }
+        </div>
+    </div>
+</section>
+
+<style>
+    #feature {
+        margin-top: 1rem; 
+    }
+
+    .container {
+        max-width: 1200px; 
+        margin-left: auto; 
+        margin-right: auto; 
+        padding: 1rem; 
+    }
+
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Tự động điều chỉnh số cột */
+        gap: 1.5rem;
+    }
+
+    .feature-item {
+        display: flex;
+        flex-direction: column; /* Sắp xếp icon, title, description theo chiều dọc */
+        align-items: center; /* Căn giữa các phần tử theo chiều ngang */
+        text-align: center; /* Căn giữa text */
+    }
+
+ 
+
+    .feature-icon-wrapper {
+        width: 50px;
+        height: 50px; 
+        border-radius: 0.25rem; 
+        background-color: #eceae3; 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        margin-bottom: 0.5rem;
+    }
+    .feature-icon-wrapper img {
+        max-width: 80%; /* Đảm bảo icon không quá lớn so với wrapper */
+        max-height: 80%;
+    }   
+
+    .feature-title {
+        font-size: 1.25rem;
+        font-weight: bold; 
+        color: #4B5320; 
+        margin-bottom: 0.25rem; 
+    }
+
+    .feature-description {
+        color: #7c7770; 
+        font-family: 'Nunito', sans-serif; 
+      
+    }
+</style>
+
+@code {
+    public List<FeatureDto> Features { get; set; } = new List<FeatureDto>()
+    {
+        new FeatureDto()
+        {
+            ImageUrl = "./images/feature1.png",
+            Title = "Hương thơm tuyệt vời",
+            Description = "Mỗi ngụm cà phê mang đến hương thơm ngây ngất, đánh thức mọi giác quan."
+        },
+        new FeatureDto()
+        {
+            ImageUrl = "./images/feature2.png",
+            Title = "Chất lượng tuyệt hảo",
+            Description = "Được chọn lọc kỹ lưỡng, đảm bảo chất lượng cao nhất trong từng hạt cà phê."
+        },
+        new FeatureDto()
+        {
+            ImageUrl = "./images/feature3.png",
+            Title = "Tinh khiết trong từng hạt",
+            Description = "Sạch và tự nhiên, giữ trọn vị nguyên bản của cà phê."
+        },
+        new FeatureDto()
+        {
+            ImageUrl = "./images/feature4.png",
+            Title = "Rang chuẩn chỉ",
+            Description = "Quy trình rang hoàn hảo, tạo nên hương vị đậm đà, thơm ngon khó quên."
+        },
+    };
+}

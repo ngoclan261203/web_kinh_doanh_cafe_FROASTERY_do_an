@@ -1,0 +1,210 @@
+@page "/thong-ke-cong-no"
+
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@inject IWebHostEnvironment Environment
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+
+@using FROASTERY.Components.Shared
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+
+
+<PageTitle>Thống kê công nợ đối tác</PageTitle>
+
+
+<div class="container mt-4">
+    <h3 class="text-center mb-4">Thống kê công nợ đối tác</h3>
+
+    
+
+    
+<!-- Hàng chứa radio bên trái, tìm kiếm bên phải -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- Radio Buttons bên trái -->
+    <div class="d-flex">
+        <label>Hiện thị: </label>
+        <div class="form-check ms-3">
+            <input type="radio" name="partnerFilter" class="form-check-input" value="All"  
+                @onchange="@(() => FilterDoiTacs("All"))" checked />
+            <label class="form-check-label" for="all">Tất Cả</label>
+        </div>
+        <div class="form-check ms-3">
+            <input class="form-check-input" type="radio" name="partnerFilter" value="KhachHang" 
+                @onchange="@(() => FilterDoiTacs("KhachHang"))" />
+            <label class="form-check-label" for="khachhang">Khách Hàng</label>
+        </div>
+        <div class="form-check ms-3">
+            <input class="form-check-input" type="radio" name="partnerFilter" value="NhaCungCap"  
+                @onchange="@(() => FilterDoiTacs("NhaCungCap"))" />
+            <label class="form-check-label" for="nhacungcap">Nhà Cung Cấp</label>
+        </div>
+    </div>
+                @if (hienThiNutInBaoCao)
+            {
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-success" @onclick="InBaoCao">In Báo Cáo</button>
+                </div>
+            }
+    </div>
+
+<div id="baoCaoIn">
+    <h5>Khách Hàng Nợ (Dư Nợ Dương)</h5>
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 100px;">Mã Đối Tác</th>
+                    <th>Tên</th>
+                    <th>Thông Tin Liên Lạc</th>
+                    <th>Địa Chỉ</th>
+                    <th style ="width: 125px">Dư Nợ</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (DoiTacsNoPhaiThu.Any())
+                {
+                    @foreach (var dt in DoiTacsNoPhaiThu)
+                    {
+                        <tr>
+                            <td>@dt.MaDoiTac</td>
+                            <td>@dt.Ten</td>
+                            <td>@dt.ThongTinLienLac</td>
+                            <td>@dt.DiaChi</td>
+                            <td>@dt.DuNo?.ToString("N0") VNĐ</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="5" class="text-center">Không có khách hàng nào đang nợ.</td></tr>
+                }
+            </tbody>
+        </table>
+        <div class=" w-100 text-end fw-bold text-success ">
+            Tổng Nợ Phải Thu: @TongDuNoPhaiThu.ToString("N0") VNĐ
+        </div>
+    </div>
+
+    <h5 class="mt-4">Nhà Cung Cấp Đang Nợ (Dư Nợ Âm)</h5>
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 100px;">Mã Đối Tác</th>
+                    <th>Tên</th>
+                    <th>Thông Tin Liên Lạc</th>
+                    <th>Địa Chỉ</th>
+                    <th style ="width: 125px">Dư Nợ</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (DoiTacsNoPhaiTra.Any())
+                {
+                    @foreach (var dt in DoiTacsNoPhaiTra)
+                    {
+                        <tr>
+                            <td>@dt.MaDoiTac</td>
+                            <td>@dt.Ten</td>
+                            <td>@dt.ThongTinLienLac</td>
+                            <td>@dt.DiaChi</td>
+                            <td class="text-danger">@dt.DuNo?.ToString("N0") VNĐ</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="5" class="text-center">Không có nhà cung cấp nào đang bị nợ.</td></tr>
+                }
+            </tbody>
+        </table>
+        <div class=" w-100 text-end fw-bold text-danger ">
+            Tổng Nợ Phải Trả: @TongDuNoPhaiTra.ToString("N0") VNĐ
+        </div>
+    </div>
+</div>
+</div>
+@code {
+    private List<DoiTac> DoiTacs = new();
+    private List<DoiTac> FullDoiTacs = new(); // Lưu danh sách đầy đủ
+    private List<DoiTac> DoiTacsNoPhaiThu = new(); // Dư nợ dương (khách hàng nợ mình)
+    private List<DoiTac> DoiTacsNoPhaiTra = new();
+    private float TongDuNoPhaiThu { get; set; }
+    private float TongDuNoPhaiTra { get; set; }
+    
+    private bool hienThiNutInBaoCao = false;
+    [Inject]
+    public IJSRuntime JS { get; set; } = default!;    
+
+    protected override async Task OnInitializedAsync()
+    {
+        FullDoiTacs = await DbContext.DoiTacs
+            .AsNoTracking()
+            .Where(dt => dt.DuNo.HasValue && dt.DuNo.Value != 0)
+            .ToListAsync();
+
+        PhanLoaiDoiTacTheoDuNo(FullDoiTacs);
+    }
+    private void FilterDoiTacs(string filter)
+    {
+        List<DoiTac> filteredList;
+        if (filter == "All")
+        {
+            filteredList = new List<DoiTac>(FullDoiTacs);
+        }
+        else if (filter == "KhachHang")
+        {
+            filteredList = FullDoiTacs.Where(dt => dt.KhachHang).ToList();
+        }
+        else if (filter == "NhaCungCap")
+        {
+            filteredList = FullDoiTacs.Where(dt => dt.NhaCungCap).ToList();
+        }
+        else
+        {
+            filteredList = new List<DoiTac>(FullDoiTacs); // Mặc định là tất cả
+        }
+
+        PhanLoaiDoiTacTheoDuNo(filteredList);
+        hienThiNutInBaoCao = true;
+        StateHasChanged();
+    }
+    private void PhanLoaiDoiTacTheoDuNo(List<DoiTac> danhSachDoiTac)
+{
+    DoiTacsNoPhaiThu.Clear();
+    DoiTacsNoPhaiTra.Clear();
+    TongDuNoPhaiThu = 0;
+    TongDuNoPhaiTra = 0;
+
+    foreach (var dt in danhSachDoiTac)
+    {
+        if (dt.DuNo > 0)
+        {
+            DoiTacsNoPhaiThu.Add(dt);
+            TongDuNoPhaiThu += dt.DuNo.Value;
+        }
+        else if (dt.DuNo < 0)
+        {
+            DoiTacsNoPhaiTra.Add(dt);
+            TongDuNoPhaiTra += dt.DuNo.Value; // Giá trị âm
+        }
+    }
+}
+        private async Task InBaoCao()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("printElementById3", "baoCaoIn");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi in báo cáo: " + ex.Message);
+        }
+    }
+    
+
+    
+}

@@ -1,0 +1,295 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FROASTERY.Services;
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+@code {
+    private ClaimsPrincipal? _currentUser;
+
+    // Thay đổi từ OnInitializedAsync sang OnAfterRenderAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Lấy trạng thái xác thực của người dùng
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                // In thông tin người dùng và trạng thái xác thực
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                Console.WriteLine("UserId: " + _currentUser?.FindFirst("UserId")?.Value); // In mã người dùng
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("User not authenticated.");
+                    // Chuyển hướng người dùng đến trang đăng nhập nếu chưa xác thực
+                    Navigation.NavigateTo("/dangnhap", true);
+                    return;
+                }
+
+                // Kiểm tra quyền Admin
+                if (!_currentUser.IsInRole("Admin"))
+                    
+                {
+                    Console.WriteLine("User does not have Admin role. Redirecting to /home.");
+                    // Chuyển hướng người dùng không phải Admin về trang chủ
+                    Navigation.NavigateTo("/home_admin", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+    }
+}
+
+
+
+@page "/phan-quyen"
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+@using FROASTERY.Components.Shared
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+
+<ErrorDisplay ErrorMessage="@DbErrorMessage" OnClear="ClearErrorMessage" />
+<PageTitle>Quản lý Phân Quyền</PageTitle>
+
+<div class="container mt-4">
+    <h3 class="text-center">Quản lý Phân Quyền</h3>
+    <h5>@(Editing ? "Chỉnh sửa" : "Thêm mới") Phân Quyền</h5>
+
+    <EditForm Model="PhanQuyen" OnValidSubmit="SaveAsync" class="border p-4 rounded shadow bg-light mb-4">
+        <DataAnnotationsValidator />
+        <div class="row">
+            <div class="col-md-5">
+                <label>Người dùng:</label>
+                    <select class="form-select mb-2" @bind="PhanQuyen.MaNguoiDung">
+                        <option value="0">-- Chọn email người dùng --</option>
+                        @foreach (var user in NguoiDungs)
+                        {
+                            <option value="@user.MaNguoiDung">@user.Email</option>
+                        }
+                    </select>
+            </div>
+            <div class="col-md-5">
+                <label>Quyền:</label>
+                    <select class="form-select mb-2" @bind="PhanQuyen.MaQuyen">
+                        <option value="0">-- Chọn quyền --</option>
+                        @foreach (var quyen in Quyens)
+                        {
+                            <option value="@quyen.MaQuyen">@quyen.TenQuyen</option>
+                        }
+                    </select>
+            </div>
+            <div class="col-md-2">
+                <label>Trạng thái:</label>
+                <div class="d-flex align-items-center mb-2">
+                    <input type="checkbox" @bind="PhanQuyen.TrangThai" class="form-check-input me-2" />
+                    Hoạt động
+                </div>
+            </div>
+    </div>
+
+
+
+        <div class="d-flex justify-content-center gap-3 mt-2">
+            <button type="submit" class="btn btn-save">Lưu</button>
+            <button type="button" class="btn btn-cancel" @onclick="ResetForm">Hủy</button>
+        </div>
+    </EditForm>
+
+    <div class="d-flex justify-content-center mb-4">
+        <input type="text" @bind="SearchQuery" class="form-control w-50" placeholder="Tìm kiếm theo người dùng hoặc quyền..." />
+        <button @onclick="Search" class="btn btn-success ms-2">Tìm kiếm</button>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 90px;">Mã PQ</th>
+                    <th style="width: 300px;">Người Dùng</th>
+                    <th>Quyền</th>
+                    <th style="width: 180px;">Trạng Thái</th>
+                    <th style="width: 140px;">Hành Động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var pq in PhanQuyens)
+                {
+                    <tr>
+                        <td>@pq.MaPhanQuyen</td>
+                        <td>@pq.NguoiDung?.Email</td>
+                        <td>@pq.Quyen?.TenQuyen</td>
+                        <td>@(pq.TrangThai ? "Hoạt động" : "Không hoạt động")</td>
+                        <td>
+                            <button @onclick="() => Edit(pq)" class="btn btn-warning">Sửa</button>
+                            <button @onclick="() => DeleteAsync(pq.MaPhanQuyen)" class="btn btn-danger">Xóa</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private string? DbErrorMessage;
+    private void ClearErrorMessage() => DbErrorMessage = null;
+
+    private List<PhanQuyen> PhanQuyens = new();
+    private List<PhanQuyen> FullPhanQuyens = new();
+    private List<NguoiDung> NguoiDungs = new();
+    private List<Quyen> Quyens = new();
+    private string SearchQuery = string.Empty;
+    private PhanQuyen PhanQuyen = new();
+    private bool Editing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+       NguoiDungs = await DbContext.NguoiDungs.AsNoTracking() .Where(x => !x.DaXoa).ToListAsync();
+        Quyens = await DbContext.Quyens.AsNoTracking().Where(x => !x.DaXoa).ToListAsync();
+
+        FullPhanQuyens = await DbContext.PhanQuyens
+            .Include(p => p.NguoiDung)
+            .Include(p => p.Quyen)
+             .Where(x => !x.DaXoa)
+            .AsNoTracking().ToListAsync();
+
+        PhanQuyens = new List<PhanQuyen>(FullPhanQuyens);
+
+        PhanQuyens.Reverse(); // đảo ngay sau khi load
+    }
+
+
+    private void Search()
+    {
+        var trimmedQuery = SearchQuery?.Trim();
+        if (string.IsNullOrEmpty(trimmedQuery))
+        {
+            PhanQuyens = new List<PhanQuyen>(FullPhanQuyens);
+        }
+        else
+        {
+            PhanQuyens = FullPhanQuyens.Where(item =>
+                item.NguoiDung?.Email.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) == true ||
+                item.Quyen?.TenQuyen.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) == true
+            ).ToList();
+        }
+        PhanQuyens.Reverse();
+    }
+
+    private void Edit(PhanQuyen pq)
+    {
+        PhanQuyen = new PhanQuyen
+        {
+            MaPhanQuyen = pq.MaPhanQuyen,
+            MaNguoiDung = pq.MaNguoiDung,
+            MaQuyen = pq.MaQuyen,
+            TrangThai = pq.TrangThai
+        };
+        Editing = true;
+    }
+
+
+     private bool ValidateChiTietPhieuNhap()
+    {
+        if (PhanQuyen.MaNguoiDung == 0)
+        {
+            DbErrorMessage = "Vui lòng chọn người dùng.";
+            return false;
+        }
+
+        if (PhanQuyen.MaQuyen == 0)
+        {
+            DbErrorMessage = "Vui lòng chọn quyền.";
+            return false;
+        }
+
+        
+
+        return true;
+    }
+
+    private async Task SaveAsync()
+    {
+        DbErrorMessage = null;
+        if (!ValidateChiTietPhieuNhap())
+        {
+            return;
+        }
+
+        var isDuplicate = await DbContext.PhanQuyens
+            .AnyAsync(x => x.MaNguoiDung == PhanQuyen.MaNguoiDung
+                        && x.MaQuyen == PhanQuyen.MaQuyen
+                        && x.MaPhanQuyen != PhanQuyen.MaPhanQuyen);
+
+        if (isDuplicate)
+        {
+            DbErrorMessage = "Người dùng này đã được cấp quyền này.";
+            return;
+        }
+
+        if (Editing)
+        {
+            var entity = await DbContext.PhanQuyens.FindAsync(PhanQuyen.MaPhanQuyen);
+            if (entity != null)
+            {
+                entity.MaNguoiDung = PhanQuyen.MaNguoiDung;
+                entity.MaQuyen = PhanQuyen.MaQuyen;
+                entity.TrangThai = PhanQuyen.TrangThai;
+            }
+        }
+        else
+        {   try
+            {
+                await DbContext.PhanQuyens.AddAsync(PhanQuyen);
+            }
+            catch (Exception ex)
+            {
+                DbErrorMessage = "Lưu dữ liệu thất bại: " + ex.Message;
+                return;
+            }
+        }
+
+        await DbContext.SaveChangesAsync();
+
+        await OnInitializedAsync();
+
+        ResetForm();
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        var entity = await DbContext.PhanQuyens.FindAsync(id);
+        if (entity != null)
+        {
+            DbContext.PhanQuyens.Remove(entity);
+            await DbContext.SaveChangesAsync();
+
+           await OnInitializedAsync();
+        }
+    }
+
+    
+
+    private void ResetForm()
+    {
+        PhanQuyen = new PhanQuyen();
+        Editing = false;
+        DbErrorMessage = null;
+    }
+}

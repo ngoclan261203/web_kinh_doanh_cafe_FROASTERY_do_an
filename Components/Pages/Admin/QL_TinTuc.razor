@@ -1,0 +1,585 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FROASTERY.Services;
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+@code {
+    private ClaimsPrincipal? _currentUser;
+
+    // Thay đổi từ OnInitializedAsync sang OnAfterRenderAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                Console.WriteLine("UserId: " + _currentUser?.FindFirst("UserId")?.Value); // In mã người dùng
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("User not authenticated.");
+                    // Chuyển hướng người dùng đến trang đăng nhập nếu chưa xác thực
+                    Navigation.NavigateTo("/dangnhap", true);
+                    return;
+                }
+
+                // Kiểm tra quyền Admin
+                if (!_currentUser.IsInRole("Admin") &&
+                    
+                    !_currentUser.IsInRole("Marketing"))
+                {
+                    Console.WriteLine("User does not have Admin role. Redirecting to /home.");
+                    // Chuyển hướng người dùng không phải Admin về trang chủ
+                    Navigation.NavigateTo("/home_admin", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+    }
+}
+
+@page "/quanly_tintuc"
+@using Microsoft.EntityFrameworkCore
+@using System.IO
+@inject IWebHostEnvironment Environment
+@inject AppDbContext DbContext
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+
+@using FROASTERY.Components.Shared
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+
+<PageTitle>Quản lý Tin Tức</PageTitle>
+
+<ErrorDisplay ErrorMessage="@DbErrorMessage" OnClear="ClearErrorMessage" />
+
+<style>
+    .form-img {
+        max-width: 200px;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    .news-img {
+        max-width: 100px;
+        height: auto;
+        border-radius: 4px;
+        box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .table th, .table td {
+        vertical-align: middle;
+    }
+        .date-input {
+        width: 200px;
+        height: 50px;
+    }
+
+    .search-input {
+        width: 200px;
+        height: 50px;
+        flex-grow: 1;
+    }
+
+    .search-button {
+        padding: 1rem 2rem;
+    }
+
+    .clear-button {
+        padding: 1rem 2rem;
+    }
+</style>
+
+<div class="container mt-4">
+    <h3 class="text-center">Quản lý Tin Tức</h3>
+    <h5>@(Editing ? "Chỉnh sửa" : "Thêm mới") Tin Tức</h5>
+
+    <EditForm Model="TinTuc" OnValidSubmit="Save" class="border p-4 rounded shadow bg-light mb-4">
+        <DataAnnotationsValidator />
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="mb-2">
+                    <label>Mã tin tức:</label>
+                    <input type="text" @bind="TinTuc.MaTinTuc" class="form-control" readonly />
+                </div>
+                <div class="mb-2">
+                    <label>Thời gian:</label>
+                    <InputDate @bind-Value="TinTuc.ThoiGian" class="form-control" />
+                    <ValidationMessage For="@(() => TinTuc.ThoiGian)" />
+                </div>
+                <div class="mb-2">
+                    <label>Loại tin:</label>
+                    <InputSelect @bind-Value="TinTuc.MaLoaiTin" class="form-control">
+                        <option value="0">-- Chọn Loại Tin --</option>
+                        @foreach (var loai in LoaiTins)
+                        {
+                            <option value="@loai.MaLoaiTin">@loai.TenLoaiTin</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => TinTuc.MaLoaiTin)" />
+                </div>
+                <div class="mb-2">
+                    <label>Tiêu đề:</label>
+                    <div class="position-relative mb-2 validation-wrapper">
+                    <InputText @bind-Value="TinTuc.TieuDe" class="form-control" />
+                    <ValidationMessage For="@(() => TinTuc.TieuDe)" />
+                    </div>
+                    
+                </div>
+        </div>
+            <div class="col-md-6">
+                <div class="mb-2">
+                    <label>File nội dung (Word):</label>
+                    <InputFile OnChange="UploadFile" class="form-control" accept=".doc, .docx, .pdf" />
+                    @if (!string.IsNullOrEmpty(TempFilePath))
+                    {
+                       <p>File đã chọn: @SelectedFileName</p>
+                    }
+                    
+                    <ValidationMessage For="@(() => TinTuc.FileDinhKem)" />
+                </div>
+                <div class="mb-2">
+                    <label>Hình ảnh (cho tiêu đề):</label>
+                    <InputFile OnChange="UploadImage" class="form-control" accept="image/*" />
+                    @if (!string.IsNullOrEmpty(TempImagePath))
+                    {
+                        <img src="@TempImagePath" alt="Hình ảnh tiêu đề" title="Hình ảnh tiêu đề" class="form-img" />
+                    }
+                    else if (!string.IsNullOrEmpty(TinTuc.HinhAnh))
+                    {
+                        <img src="@TinTuc.HinhAnh" alt="Hình ảnh tiêu đề" title="Hình ảnh tiêu đề" class="form-img" />
+                    }
+                    else
+                    {
+                        <span class="text-muted">Chưa có ảnh tiêu đề</span>
+                    }
+                    <ValidationMessage For="@(() => TinTuc.HinhAnh)" />
+                </div>
+                
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3 mt-2">
+            <button type="submit" class="btn btn-save">Lưu</button>
+            <button type="button" class="btn btn-cancel" @onclick="Cancel">Hủy</button>
+        </div>
+    </EditForm>
+
+
+
+    <div class="card p-3 mb-4 shadow-sm">
+    <div class="row g-2 align-items-end">
+        <!-- Ô tìm kiếm từ khóa -->
+        <div class="col-md-4">
+            <label class="form-label">Tìm kiếm</label>
+            <input type="text" @bind="SearchQuery" class="form-control"
+                   placeholder="Tìm kiếm theo mã, tiêu đề..." />
+        </div>
+
+
+        <div class="col-md-2">
+            <label class="me-2">Từ ngày:</label>
+            <InputDate @bind-Value="SearchStartDate" class="form-control " />
+        </div>
+
+        <div class="col-md-2">
+            <label class="me-2">Đến ngày:</label>
+            <InputDate @bind-Value="SearchEndDate" class="form-control " />
+            
+        </div>
+        <!-- Các nút -->
+        <div class="col-md-4 ms-auto d-flex justify-content-end gap-2">
+            <button @onclick="Search" class="btn btn-success px-4">Tìm kiếm</button>
+            <button @onclick="ClearSearch" class="btn btn-secondary px-4">Xóa lọc</button>
+        </div>
+
+    </div>
+
+</div>
+
+
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 60px;">Mã</th>
+                    <th style="width: 120px;">Thời gian</th>
+                    <th>Loại tin</th>
+                    <th>Tiêu đề</th>
+                    <th>Ảnh tiêu đề</th>
+                    <th style="width: 230px;">File nội dung</th>
+                    <th style="width: 130px;">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tin in TinTucs)
+                {
+                    <tr>
+                        <td>@tin.MaTinTuc</td>
+                        <td>@tin.ThoiGian.ToShortDateString()</td>
+                        <td>@tin.LoaiTin?.TenLoaiTin</td>
+                        <td>@tin.TieuDe</td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(tin.HinhAnh))
+                            {
+                                <img src="@tin.HinhAnh" alt="Ảnh tiêu đề" title="@tin.TieuDe" class="news-img" />
+                            }
+                            else
+                            {
+                                <span>Không có ảnh</span>
+                            }
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(tin.FileDinhKem))
+                            {
+                                <span>@Path.GetFileName(tin.FileDinhKem)</span>
+                                
+                            }
+                            else
+                            {
+                                <span>Không có file</span>
+                            }
+                        </td>
+                        <td>
+                            <button @onclick="() => Edit(tin)" class="btn btn-warning mb-1">Sửa</button>
+                            <button @onclick="() => Delete(tin.MaTinTuc)" class="btn btn-danger">Xóa</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private List<TinTuc> TinTucs = new();
+    private List<TinTuc> FullTinTucs = new();
+    private List<LoaiTin> LoaiTins = new();
+    private TinTuc TinTuc = new();
+    private bool Editing = false;
+    private string SearchQuery = string.Empty;
+    private DateTime? SearchStartDate { get; set; }
+    private DateTime? SearchEndDate { get; set; }
+    private string? DbErrorMessage;
+    private string? TempImagePath;
+    private string? TempFilePath;
+    private IBrowserFile? UploadedFile;
+    private IBrowserFile? UploadedImageFile;
+    private bool IsImageSelected = false;
+    private bool IsFileSelected = false;
+    private string? SelectedFileName;
+ 
+    protected override async Task OnInitializedAsync()
+    {
+        FullTinTucs = await DbContext.TinTucs
+                            .Include(t => t.LoaiTin)
+                            .Where(p => !p.DaXoa)
+                            .AsNoTracking()
+                            .ToListAsync();
+        TinTucs = new List<TinTuc>(FullTinTucs);
+        LoaiTins = await DbContext.LoaiTins.AsNoTracking().Where(p => !p.DaXoa).ToListAsync();
+
+        TinTucs.Reverse();  
+    }
+    private void Search()
+    {
+        var trimmedQuery = (SearchQuery ?? string.Empty).Trim();
+        IEnumerable<TinTuc> filteredTinTucs = FullTinTucs;
+
+        if (SearchStartDate.HasValue)
+        {
+            filteredTinTucs = filteredTinTucs.Where(t => t.ThoiGian.Date >= SearchStartDate.Value.Date);
+        }
+
+        if (SearchEndDate.HasValue)
+        {
+            filteredTinTucs = filteredTinTucs.Where(t => t.ThoiGian.Date <= SearchEndDate.Value.Date);
+        }
+
+        if (!string.IsNullOrWhiteSpace(trimmedQuery))
+        {
+
+            if (int.TryParse(trimmedQuery, out int maTinTuc))
+            {
+                filteredTinTucs = filteredTinTucs.Where(t => t.MaTinTuc == maTinTuc);
+            }
+            else
+            {
+                string loweredQuery = trimmedQuery.ToLowerInvariant();
+
+                filteredTinTucs = filteredTinTucs.Where(t =>
+                    (!string.IsNullOrEmpty(t.TieuDe) && t.TieuDe.ToLowerInvariant().Contains(loweredQuery)) ||
+                    (t.LoaiTin != null && !string.IsNullOrEmpty(t.LoaiTin.TenLoaiTin) && t.LoaiTin.TenLoaiTin.ToLowerInvariant().Contains(loweredQuery))
+                );
+            }
+        }
+
+        TinTucs = filteredTinTucs
+            .OrderByDescending(t => t.ThoiGian)
+            .ToList();
+    }
+    private void ClearSearch()
+    {
+        SearchStartDate = null;
+        SearchEndDate = null;
+        SearchQuery = string.Empty;
+        TinTucs = new List<TinTuc>(FullTinTucs);
+    }
+    private void Edit(TinTuc tin)
+    {
+        TinTuc = new TinTuc
+        {
+            MaTinTuc = tin.MaTinTuc,
+            ThoiGian = tin.ThoiGian,
+            MaLoaiTin = tin.MaLoaiTin,
+            TieuDe = tin.TieuDe,
+            HinhAnh = tin.HinhAnh,
+            FileDinhKem = tin.FileDinhKem
+        };
+        TempImagePath = tin.HinhAnh;
+        TempFilePath = tin.FileDinhKem;
+        UploadedFile = null;
+        UploadedImageFile = null;
+        Editing = true;
+    }
+    private async Task Save()
+    {
+        DbErrorMessage = null;
+        if (TinTuc.MaLoaiTin == 0)
+        {
+            DbErrorMessage = "Vui lòng chọn loại tin.";
+            return;
+        }
+        if (string.IsNullOrEmpty(TinTuc.TieuDe))
+        {
+            DbErrorMessage = "Vui lòng nhập tiêu đề.";
+            return;
+        }
+            
+        if (!Editing && !IsImageSelected)
+        {
+            DbErrorMessage = "Vui lòng chọn ảnh tiêu đề.";
+            return;
+        }
+
+        if (!Editing && !IsFileSelected)
+        {
+            DbErrorMessage = "Vui lòng chọn file nội dung (Word/PDF).";
+            return;
+        }
+
+        string? oldImagePath = Editing ? TinTuc.HinhAnh : null;
+        string? oldFilePath = Editing ? TinTuc.FileDinhKem : null;
+
+        if (UploadedImageFile != null)
+        {
+            var uploadsFolder = Path.Combine(Environment.WebRootPath, "uploads");
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+            }
+            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(UploadedImageFile.Name)}";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+            await using var stream = new FileStream(filePath, FileMode.Create);
+            await UploadedImageFile.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024).CopyToAsync(stream);
+            TinTuc.HinhAnh = $"/uploads/{fileName}";
+        }
+
+        if (UploadedFile != null)
+        {
+            var uploadsFolder = Path.Combine(Environment.WebRootPath, "uploads");
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+            }
+            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(UploadedFile.Name)}";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+            try
+            {
+                await using var stream = new FileStream(filePath, FileMode.Create);
+                await UploadedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).CopyToAsync(stream);
+                TinTuc.FileDinhKem = $"/uploads/{fileName}";
+            }
+            catch (Exception ex)
+            {
+                DbErrorMessage = $"Lỗi tải lên file: {ex.Message}";
+                return;
+            }
+        }
+
+        if (Editing)
+        {
+            var entity = await DbContext.TinTucs.FindAsync(TinTuc.MaTinTuc);
+            if (entity != null)
+            {
+                entity.ThoiGian = TinTuc.ThoiGian;
+                entity.MaLoaiTin = TinTuc.MaLoaiTin;
+                entity.TieuDe = TinTuc.TieuDe;
+                entity.HinhAnh = TinTuc.HinhAnh;
+                entity.FileDinhKem = TinTuc.FileDinhKem;
+            }
+        }
+        else
+        {
+            DbContext.TinTucs.Add(TinTuc);
+        }
+
+        try
+        {
+            await DbContext.SaveChangesAsync();
+            if (!string.IsNullOrEmpty(oldImagePath) && oldImagePath != TinTuc.HinhAnh)
+            {
+                DeleteImageFile(oldImagePath);
+            }
+            if (!string.IsNullOrEmpty(oldFilePath) && oldFilePath != TinTuc.FileDinhKem)
+            {
+                DeleteFile(oldFilePath);
+            }
+           await OnInitializedAsync();
+            Cancel();
+        }
+        catch (Exception ex)
+        {
+            DbErrorMessage = $"Lưu dữ liệu thất bại: {ex.Message}";
+        }
+    }
+
+    private async Task Delete(int id)
+    {
+        var entity = await DbContext.TinTucs.FindAsync(id);
+        if (entity != null)
+        {
+            if (!string.IsNullOrEmpty(entity.HinhAnh))
+            {
+                DeleteImageFile(entity.HinhAnh);
+            }
+            if (!string.IsNullOrEmpty(entity.FileDinhKem))
+            {
+                DeleteFile(entity.FileDinhKem);
+            }
+            @* DbContext.TinTucs.Remove(entity);
+            await DbContext.SaveChangesAsync();
+            FullTinTucs = await DbContext.TinTucs.Include(t => t.LoaiTin).AsNoTracking().ToListAsync();
+            TinTucs = new List<TinTuc>(FullTinTucs); *@
+                 entity.DaXoa = true;
+            await DbContext.SaveChangesAsync();
+
+            // Reload danh sách những loại chưa bị xóa
+           await OnInitializedAsync();
+        }
+    }
+
+    private void Cancel()
+    {
+        TinTuc = new TinTuc();
+        TempImagePath = null;
+        TempFilePath = null;
+        UploadedFile = null;
+        UploadedImageFile = null;
+        Editing = false;
+        DbErrorMessage = null;
+    }
+
+    private async Task UploadImage(InputFileChangeEventArgs e)
+    {
+        UploadedImageFile = e.File;
+        TempImagePath = null;
+        IsImageSelected = false;
+        if (UploadedImageFile != null)
+        {
+            var fileType = UploadedImageFile.ContentType;
+            using var memoryStream = new MemoryStream();
+            await UploadedImageFile.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024).CopyToAsync(memoryStream);
+            TempImagePath = $"data:{fileType};base64,{Convert.ToBase64String(memoryStream.ToArray())}";
+            TinTuc.HinhAnh = TempImagePath; // Lưu base64 tạm thời vào TinTuc.HinhAnh
+            IsImageSelected = true;
+        }
+    }
+    private byte[]? TempFileContent;
+    private async Task UploadFile(InputFileChangeEventArgs e)
+    {
+        UploadedFile = e.File;
+        TempFilePath = null;
+        TempFileContent = null;
+        IsFileSelected = false; 
+        SelectedFileName = UploadedFile?.Name;
+
+        if (UploadedFile != null)
+        {
+            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(UploadedFile.Name)}";
+            TinTuc.FileDinhKem = $"/uploads/temp/{fileName}"; 
+            TempFilePath = TinTuc.FileDinhKem;
+            
+            try
+            {
+                using var stream = UploadedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+                using var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream);
+                TempFileContent = memoryStream.ToArray();
+                IsFileSelected = true; 
+            }
+            catch (Exception ex)
+            {
+                DbErrorMessage = $"Lỗi đọc file: {ex.Message}";
+            }
+        }
+    }
+    private void DeleteImageFile(string? imagePath)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(imagePath) && !imagePath.StartsWith("data:")) // Không xóa base64
+            {
+                var fullPath = Path.Combine(Environment.WebRootPath, imagePath.TrimStart('/'));
+                if (System.IO.File.Exists(fullPath))
+                {
+                    System.IO.File.Delete(fullPath);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            DbErrorMessage = $"Lỗi khi xóa ảnh: {ex.Message}";
+        }
+    }
+
+    private void DeleteFile(string? filePath)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                var fullPath = Path.Combine(Environment.WebRootPath, filePath.TrimStart('/'));
+                if (System.IO.File.Exists(fullPath))
+                {
+                    System.IO.File.Delete(fullPath);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            DbErrorMessage = $"Lỗi khi xóa file: {ex.Message}";
+        }
+    }
+
+    private void ClearErrorMessage()
+    {
+        DbErrorMessage = null;
+    }
+}

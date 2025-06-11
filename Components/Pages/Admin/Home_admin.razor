@@ -1,0 +1,114 @@
+@page "/home_admin"
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Services
+@using FROASTERY.Data
+@inject DashboardService DashboardService
+
+<PageTitle>Trang chủ Admin</PageTitle>
+
+<h2>Chào mừng đến với trang quản trị F-ROASTERY!</h2>
+<br>
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h3>Tổng doanh thu hôm nay</h3>
+                <h2>@todayRevenue.ToString("N0") VNĐ</h2>
+                <i class="oi oi-dollar float-right" style="font-size: 2em;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body" >
+                <h3>Đơn hàng mới hôm nay</h3>
+                <h2>@todayNewOrders</h2>
+                <i class="oi oi-cart float-right" style="font-size: 2em;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card">
+                <div class="card-header" style="background-color: #baa938;">
+                    <h5>Sản phẩm bán chạy nhất hôm nay</h5>
+                </div>
+                <div class="card-body">
+                    <h4>@bestSellingProduct</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12 mb-3">
+        <div class="card">
+            <div class="card-header"  style="background-color: #bd936a;">
+                Thông báo gần đây
+            </div>
+            <ul class="list-group list-group-flush">
+                @foreach (var notification in recentNotifications)
+                {
+                    <li class="list-group-item">@notification</li>
+                }
+                @if (!recentNotifications.Any())
+                {
+                    <li class="list-group-item">Không có thông báo mới.</li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12 mb-3">
+        <div class="card">
+            <div class="card-header" style="background-color: #678aa7;">
+                Sự kiện đang và sắp diễn ra
+            </div>
+            <ul class="list-group list-group-flush">
+                @foreach (var activeUpcomingEvent in activeUpcomingEvents)
+                {
+                    <li class="list-group-item">
+                        <strong>@activeUpcomingEvent.TieuDe</strong>
+                        @if (activeUpcomingEvent.ThoiGianBatDau.HasValue)
+                        {
+<span> - Bắt đầu: @activeUpcomingEvent.ThoiGianBatDau.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                        }
+                        @if (activeUpcomingEvent.ThoiGianKetThuc.HasValue)
+                        {
+<span> - Kết thúc: @activeUpcomingEvent.ThoiGianKetThuc.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                        }
+                        else
+                        {
+                            <span> - Đang diễn ra (không có thời gian kết thúc)</span>
+                        }
+                    </li>
+                }
+                @if (!activeUpcomingEvents.Any())
+                {
+                    <li class="list-group-item">Không có sự kiện đang hoặc sắp diễn ra.</li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+
+@code {
+    private decimal todayRevenue { get; set; }
+    private int todayNewOrders { get; set; }
+    @* private int todayNewCustomers { get; set; } *@
+    private string bestSellingProduct { get; set; } = "Chưa có sản phẩm được bán";
+    private List<string> recentNotifications { get; set; } = new List<string>();
+    private List<SuKien> activeUpcomingEvents { get; set; } = new List<SuKien>(); 
+    protected override async Task OnInitializedAsync()
+    {
+        todayRevenue = await DashboardService.GetTodayRevenueAsync();
+        todayNewOrders = await DashboardService.GetTodayNewOrdersAsync();
+        @* todayNewCustomers = await DashboardService.GetTodayNewCustomersAsync(); *@
+        bestSellingProduct = await DashboardService.GetBestSellingProductAsync();
+        recentNotifications = await DashboardService.GetRecentNotificationsAsync();
+        activeUpcomingEvents = await DashboardService.GetActiveAndUpcomingEventsByStatusAsync();
+    }
+}

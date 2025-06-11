@@ -1,0 +1,607 @@
+@page "/quangba"
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data;
+@using Microsoft.EntityFrameworkCore;
+@inject AppDbContext DbContext
+
+<PageTitle>Sản Phẩm</PageTitle>
+<br>
+<style>
+@* 
+    .carousel-container {
+        width: 100%; 
+        margin: 0 auto 20px;
+        overflow: hidden;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        height: 600px; 
+    }
+
+    .carousel-slide {
+        display: flex;
+        transition: transform 0.8s ease-in-out;
+    }
+
+    .carousel-image {
+        min-width: 100%;
+        height: 100%;
+        object-fit: contain; 
+    } *@
+    #product-promotion {
+        margin-top: 1rem;
+        background-color: #eceae3;
+        position: relative;
+        padding: 1rem;
+        overflow: hidden;
+    }
+    #product-promotion .decor-top-left {
+        position: absolute;
+        top: 10%;
+        left: 0;
+        width: 15%;
+        opacity: 0.5;
+    }
+
+    #product-promotion .decor-bottom-right {
+        position: absolute;
+        bottom: 10%;
+        right: 0;
+        width: 15%;
+        opacity: 0.5;
+    }
+
+
+    .category-item {
+        cursor: pointer;
+        transition: transform 0.2s ease-in-out;
+    }
+
+    .category-item:hover {
+        transform: scale(1.05);
+    }
+
+    .category-next-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+        border-radius: 50%;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        width: 3rem;
+        height: 3rem;
+        transition: background-color 0.2s ease-in-out;
+    }
+
+    .category-next-button:hover {
+        background-color: #e9ecef;
+    }
+
+    /* Hiệu ứng hover cho nút tìm kiếm */
+    .search-button {
+        background-color: #064723;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        transition: background-color 0.2s ease-in-out;
+    }
+
+    .search-button:hover {
+        background-color: #1e7e34;
+    }
+
+    .product-card {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        transition: box-shadow 0.3s ease-in-out;
+    }
+    .product-card .card-body {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    .product-name {
+        text-align: center;
+        margin-bottom: 0.25rem;
+        min-height: 3rem; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .product-description {
+        text-align: center;
+        margin-bottom: 0.5rem;
+        color: #6c757d;
+        font-size: small;
+        min-height: 2rem; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-grow: 1; 
+    }   
+    .product-price {
+        text-align: center;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    } 
+    .product-card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+
+    .product-action-button {
+        border: 1px solid #6c757d;
+        color: #6c757d;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.2rem;
+        cursor: pointer;
+        transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+    }
+
+    .product-action-button:hover {
+        background-color: #f8f9fa;
+        color: #495057;
+    }
+
+    .product-action-button.warning {
+        border-color: #ffc107;
+        color: #6c757d;
+    }
+
+    .product-action-button.warning:hover {
+        background-color: #fff3cd;
+        color: #85640a;
+    }
+
+    .product-action-button.success {
+        border-color: #28a745;
+        color: #cbd5df;
+    }
+
+    .product-action-button.success:hover {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    .form-check-input:checked {
+        border-color: #155724; 
+        background-color: #155724;  
+    }
+    .form-check-input:hover {
+        @* border-color: #155724; *@
+        background-color: #155724;
+    }
+</style>
+
+@* <div class="carousel-container">
+    <div class="carousel-slide" style="transform: translateX(-@(currentImageIndex * 100)%);">
+        @foreach (var imagePath in slideImages)
+        {
+            <img src="@imagePath" alt="Quảng cáo" class="carousel-image">
+        }
+    </div>
+</div> *@
+
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FROASTERY.Services;
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+@code {
+     private ClaimsPrincipal? _currentUser;
+    private bool isLoggedIn = false;
+    private bool isUser = false;
+
+    // Thay đổi từ OnInitializedAsync sang OnAfterRenderAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                // In thông tin người dùng và trạng thái xác thực
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    isLoggedIn = false;
+                   
+                }
+                else{
+                     isLoggedIn = true;
+                }
+
+                if (isLoggedIn == true)
+                {
+                    isUser = _currentUser?.IsInRole("User") == true;
+
+                }
+                Console.WriteLine("IisLoggedI: " + isUser);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+    }
+}
+
+
+
+
+<section id="product-promotion">
+
+    @if (showSuccess && !string.IsNullOrEmpty(successMessage))
+{
+    <div class="toast-container position-fixed end-0 p-3" style="top: 4rem; z-index: 1055;">
+        <div class="toast show align-items-center text-bg-success border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    @successMessage
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" @onclick="() => showSuccess = false"></button>
+            </div>
+        </div>
+    </div>
+}
+
+    <img src="./uploads/decor1.png" alt="decor" class="decor-top-left" />
+    <img src="./uploads/decor2.png" alt="decor" class="decor-bottom-right" />
+    <div class="container max-w-[1200px] mx-auto p-4">
+        <h3 class="text-center text-2xl font-bold mb-4">Danh Mục Sản Phẩm</h3>
+
+        <div class="d-flex justify-content-center overflow-hidden mb-3 px-4">
+            <div class="d-flex flex-nowrap justify-content-center align-items-center" style="gap: 1.5rem;">
+                @if (currentCategoryStartIndex > 0)
+                {
+                    <div class="category-next-button"
+                        @onclick="ShowPreviousCategoryGroup">
+                        <span class="fw-bold fs-5">&lt;</span>
+                    </div>
+                }
+
+                @foreach (var loai in LoaiSanPhams.Skip(currentCategoryStartIndex).Take(4))
+                {
+                    <div class="text-center category-item"
+                        @onclick="async () => await LoadProductsByCategory(loai)"
+                        style="width: 15rem;">
+                        <div style="width: 100%; height: 10rem; overflow: hidden; border-radius: 0.5rem; box-shadow: 0 0 5px rgba(0,0,0,0.1);">
+                            <img src="@loai.Anh" alt="@loai.TenLoaiSP"
+                                style="width: 100%; height: 100%; object-fit: cover;" />
+                        </div>
+                        <p class="fw-bold mt-2">@loai.TenLoaiSP</p>
+                    </div>
+                }
+
+                @if (LoaiSanPhams.Count > currentCategoryStartIndex + 4)
+                {
+                    <div class="category-next-button"
+                        @onclick="ShowNextCategoryGroup">
+                        <span class="fw-bold fs-5">&gt;</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center mb-4">
+            <input type="text" @bind="SearchQuery" class="form-control w-50" placeholder="Tìm kiếm theo mã sản phẩm, tên sản phẩm, hoặc mô tả..." />
+            <button @onclick="async () => await TimKiem()" class="btn btn-success ms-2 search-button">Tìm kiếm</button>
+        </div>
+        <br>
+
+        <div class="d-flex justify-content-center mb-3">
+            <span class="fw-bold me-2">Xếp theo:</span>
+                <div class="form-check form-check-inline">
+                    <input type="radio" id="tatCa" name="sortOption" value="tatCa"
+                        class="form-check-input"
+                        checked="@((sortOption == "tatCa"))"
+                        @onchange="@(() => { sortOption = "tatCa"; SortProducts("tatCa"); })" />
+                    <label for="tatCa" class="form-check-label me-3">Tất cả</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input type="radio" id="tenAZ" name="sortOption" value="tenAZ"
+                        class="form-check-input"
+                        checked="@((sortOption == "tenAZ"))"
+                        @onchange="@(() => { sortOption = "tenAZ"; SortProducts("tenAZ"); })" />
+                    <label for="tenAZ" class="form-check-label me-3">Tên A-Z</label>
+                </div>
+
+                <div class="form-check form-check-inline">
+                    <input type="radio" id="tenZA" name="sortOption" value="tenZA"
+                        class="form-check-input"
+                        checked="@((sortOption == "tenZA"))"
+                        @onchange="@(() => { sortOption = "tenZA"; SortProducts("tenZA"); })" />
+                    <label for="tenZA" class="form-check-label me-3">Tên Z-A</label>
+                </div>
+
+                <div class="form-check form-check-inline">
+                    <input type="radio" id="giaThapDenCao" name="sortOption" value="giaThapDenCao"
+                        class="form-check-input"
+                        checked="@((sortOption == "giaThapDenCao"))"
+                        @onchange="@(() => { sortOption = "giaThapDenCao"; SortProducts("giaThapDenCao"); })" />
+                    <label for="giaThapDenCao" class="form-check-label me-3">Giá thấp đến cao</label>
+                </div>
+
+                <div class="form-check form-check-inline">
+                    <input type="radio" id="giaCaoXuongThap" name="sortOption" value="giaCaoXuongThap"
+                        class="form-check-input"
+                        checked="@((sortOption == "giaCaoXuongThap"))"
+                        @onchange="@(() => { sortOption = "giaCaoXuongThap"; SortProducts("giaCaoXuongThap"); })" />
+                    <label for="giaCaoXuongThap" class="form-check-label">Giá cao xuống thấp</label>
+                </div>
+        </div>
+        <br>
+        @if (!string.IsNullOrEmpty(selectedCategoryName))
+        {
+            <p class="text-center fw-bold fw-bold" style="font-size: 1.2em;">Danh sách sản phẩm thuộc loại: @selectedCategoryName</p>
+        }
+        <br>
+        <br>
+
+<div class="container px-4">
+        @if (hienThiThongBaoKhongCoSanPham)
+    {
+        <p class="text-center text-danger fw-bold">Không có sản phẩm nào thuộc loại: @selectedCategoryName</p>
+    }
+    else
+    {
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+        @foreach (var sp in SanPhams)
+        {
+            <div class="col" @onclick="() => XemChiTiet(sp)" style="cursor: pointer;">
+                <div class="card h-100 d-flex flex-column product-card">
+                    <img src="@sp.Anh" alt="@sp.TenSanPham" class="card-img-top" style="height: 14.5rem; object-fit: cover; object-position: bottom center;">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title product-name ">@sp.TenSanPham</h5>
+                        <p class="card-text text-muted small product-description">@sp.MoTa</p>
+                        <div class="mt-auto product-actions">
+                            <p class="card-text fw-semibold product-price ">Giá: @sp.Gia VNĐ</p>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-warning btn-sm product-action-button warning"
+        @onclick:stopPropagation 
+        @onclick="async () => await ThemVaoGioHangAsync(sp.MaSanPham)">
+
+    Thêm vào giỏ hàng
+</button>
+                                <button class="btn btn-success btn-sm product-action-button success" 
+                                @onclick:stopPropagation 
+                                @onclick="@(() => MuaNgay(sp))">Mua ngay</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+ }   
+</div>
+
+    </div>
+    
+</section>
+<Footer />
+
+@code {
+     private string? successMessage;
+private bool showSuccess = false;
+
+    private string SearchQuery { get; set; } = string.Empty;
+    private List <SanPham> SanPhams = new();
+    private List<SanPham> FullSanPhams { get; set; } = new();
+    private List<LoaiSanPham> LoaiSanPhams = new();
+    private int currentCategoryStartIndex = 0;
+    private string sortOption { get; set; } = "tatCa";
+    private string? errorMessage;
+
+    private List<SanPham> displayedProducts { get; set; } = new();
+    @* private int currentImageIndex = 0;
+    private Timer? timer;
+    private List<string> slideImages = new List<string> {
+        "./uploads/slider1.jpg",
+        "./uploads/slider2.jpg",
+        "./uploads/slider3.png"
+    }; *@
+    private string? selectedCategoryName;
+    private bool hienThiThongBaoKhongCoSanPham = false;
+    private async Task ThemVaoGioHangAsync(int maSanPham)
+{
+    if (!isLoggedIn)
+    {
+        NavigationManager.NavigateTo("/dangnhap");
+        return;
+    }
+
+    if (!isUser)
+    {
+        NavigationManager.NavigateTo("/home");
+        return;
+    }
+
+    try
+    {
+        var email = _currentUser!.Identity!.Name!;
+        var nguoiDung = await DbContext.NguoiDungs
+            .FirstOrDefaultAsync(u => u.Email == email);
+
+        if (nguoiDung == null)
+        {
+            NavigationManager.NavigateTo("/dangnhap");
+            return;
+        }
+
+        var maNguoiDung = nguoiDung.MaNguoiDung;
+
+        var gioHangItem = await DbContext.GioHangs
+            .FirstOrDefaultAsync(g => g.MaNguoiDung == maNguoiDung && g.MaSanPham == maSanPham);
+
+        if (gioHangItem != null)
+        {
+            gioHangItem.SoLuong += 1;
+        }
+        else
+        {
+            DbContext.GioHangs.Add(new GioHang
+            {
+                MaSanPham = maSanPham,
+                SoLuong = 1,
+                MaNguoiDung = maNguoiDung
+            });
+        }
+
+        await DbContext.SaveChangesAsync();
+
+        // Tùy chọn: lấy lại tên sản phẩm để hiển thị thông báo
+        var tenSanPham = await DbContext.SanPhams
+            .Where(s => s.MaSanPham == maSanPham)
+            .Select(s => s.TenSanPham)
+            .FirstOrDefaultAsync();
+
+        successMessage = $"Đã thêm sản phẩm \"{tenSanPham}\" vào giỏ hàng!";
+        showSuccess = true;
+        StateHasChanged();
+
+        await Task.Delay(3000);
+        showSuccess = false;
+        StateHasChanged();
+    }
+    catch (Exception ex)
+    {
+        errorMessage = $"Lỗi khi thêm vào giỏ hàng: {ex.Message}";
+    }
+}
+
+
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        FullSanPhams = await DbContext.SanPhams
+        .Include(sp => sp.LoaiSanPham)
+        .Where(p => !p.DaXoa)
+        .AsNoTracking()
+        .ToListAsync();
+        LoaiSanPhams = await DbContext.LoaiSanPhams.AsNoTracking().Where(p => !p.DaXoa).ToListAsync();
+        SanPhams = new List<SanPham>(FullSanPhams);
+        SortProducts(sortOption); 
+                @* timer = new Timer(async _ => {
+            await InvokeAsync(() => {
+                currentImageIndex = (currentImageIndex + 1) % slideImages.Count;
+                StateHasChanged();
+            });
+        }, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));  *@
+    }
+    @* public void Dispose()
+    {
+        timer?.Dispose();
+    } *@
+       private async Task TimKiem()
+        {
+            var trimmedQuery = SearchQuery?.Trim();
+        if (string.IsNullOrEmpty(trimmedQuery))
+        {
+            SanPhams = new List<SanPham>(FullSanPhams);
+        }
+        else
+        {
+            SanPhams = FullSanPhams.Where(item =>
+                        item.MaSanPham.ToString().Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) ||
+                        item.TenSanPham.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) ||
+                        (item.MoTa?.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) == true) ||
+                        (item.LoaiSanPham?.TenLoaiSP?.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) == true) 
+                    ).ToList();
+        }
+        await InvokeAsync(StateHasChanged);
+}
+@inject NavigationManager NavigationManager
+
+    private void XemChiTiet(SanPham sp)
+    {
+        NavigationManager.NavigateTo($"/chitietsanpham/{sp.MaSanPham}");
+    }
+    private void MuaNgay(SanPham sp)
+{
+   NavigationManager.NavigateTo($"/dathangsp/{sp.MaSanPham}");
+}
+
+    private async Task LoadProductsByCategory(LoaiSanPham loai)
+    {
+        SanPhams = FullSanPhams.Where(sp => sp.MaLoaiSP == loai.MaLoaiSP).ToList();
+        selectedCategoryName = loai.TenLoaiSP;
+
+        if (!SanPhams.Any())
+        {
+            // Tùy chọn 1: Hiển thị danh sách rỗng (mặc định của foreach sẽ không hiển thị gì)
+            // SanPhams = new List<SanPham>();
+
+            // Tùy chọn 2: Đặt một biến trạng thái để hiển thị thông báo
+            hienThiThongBaoKhongCoSanPham = true;
+        }
+        else
+        {
+            hienThiThongBaoKhongCoSanPham = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+    private void ShowNextCategoryGroup()
+    {
+        currentCategoryStartIndex += 4;
+        if (currentCategoryStartIndex >= LoaiSanPhams.Count)
+        {
+            currentCategoryStartIndex = 0;
+        }
+    }
+    private void ShowPreviousCategoryGroup()
+    {
+        currentCategoryStartIndex -= 4;
+        if (currentCategoryStartIndex < 0)
+        {
+            currentCategoryStartIndex = 0;
+        }
+    }
+private void SortProducts(string id)
+{
+    switch (id)
+    {
+        case "tatCa":
+                SanPhams = new List<SanPham>(FullSanPhams);
+                selectedCategoryName = null;
+                hienThiThongBaoKhongCoSanPham = false; 
+                break;
+        case "tenAZ":
+            SanPhams = SanPhams.OrderBy(sp => sp.TenSanPham).ToList();
+            selectedCategoryName = null;
+            hienThiThongBaoKhongCoSanPham = false; 
+            break;
+        case "tenZA":
+            SanPhams = SanPhams.OrderByDescending(sp => sp.TenSanPham).ToList();
+            selectedCategoryName = null;
+            hienThiThongBaoKhongCoSanPham = false; 
+            break;
+        case "giaThapDenCao":
+            SanPhams = SanPhams.OrderBy(sp => sp.Gia).ToList();
+            selectedCategoryName = null;
+            hienThiThongBaoKhongCoSanPham = false; 
+            break;
+        case "giaCaoXuongThap":
+            SanPhams = SanPhams.OrderByDescending(sp => sp.Gia).ToList();
+            selectedCategoryName = null;
+            hienThiThongBaoKhongCoSanPham = false; 
+            break;
+    }
+    StateHasChanged();
+    }
+}

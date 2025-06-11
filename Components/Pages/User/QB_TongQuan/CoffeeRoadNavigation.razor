@@ -1,0 +1,86 @@
+<style>
+.dot {
+    width: 16px;
+    height: 16px;
+    background-color: #c7a17a;
+    border-radius: 9999px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s ease, background-color 0.2s;
+}
+
+.dot:hover {
+    transform: scale(1.2);
+    background-color: #a1865e;
+}
+
+.dot.active {
+    transform: scale(1.6);
+    background-color: white;
+    border: 3px solid #c7a17a;
+
+}
+    .navigation-wrapper {
+        display: flex;
+        justify-content: center; /* Căn giữa theo chiều ngang */
+        width: 100%; /* Để đảm bảo chiếm toàn bộ chiều rộng của container cha */
+        padding: 1rem 0; /* Thêm padding trên và dưới cho đẹp */
+    }
+
+    .flex.items-center.justify-center.w-full.px-4.md\:px-10 {
+        display: flex; /* Đảm bảo là flex container */
+        justify-content: center; /* Căn giữa các dot */
+        align-items: center; /* Căn giữa theo chiều dọc (nếu cần) */
+        gap: 1rem; /* Thêm khoảng cách giữa các nhóm dot (nếu có) */
+    }
+
+    .flex.flex-col.items-center.relative {
+        margin-right: 0 !important;
+    }
+
+    .flex.flex-col.items-center.relative:last-child {
+        margin-right: 0; 
+    }
+
+    .absolute.top-\[7px\].left-full {
+         display: none;
+    }
+    .mt-2.text-sm.font-medium.text-\[\#c7a17a\].text-center {
+        display: none; 
+    }
+    </style>
+<div class="navigation-wrapper">
+    <div class="flex items-center justify-center w-full px-4 md:px-10">
+        @for (int i = 0; i < Steps.Length; i++)
+        {
+            <div class="flex flex-col items-center relative">
+                <button class="dot @(ActiveIndex == i ? "active" : "")" @onclick="@(() => IndexSelect(i))"></button>
+                <span class="mt-2 text-sm font-medium text-[#c7a17a] text-center">@Steps[i]</span>
+
+                @if (i < Steps.Length - 1)
+                {
+                    <div class="absolute top-[7px] left-full w-[40px] h-[2px] border-t-2 border-dashed border-[#c7a17a]"></div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+
+@code {
+    [Parameter]
+    public int ActiveIndex { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnIndexSelect { get; set; }
+
+    private string[] Steps = new[]
+    {
+        "Thu hoạch", "Sơ chế", "Phơi khô", "Rang cà phê", "Cupping", "Thành phẩm"
+    };
+
+    async Task IndexSelect(int value)
+    {
+        await OnIndexSelect.InvokeAsync(value);
+    }
+}

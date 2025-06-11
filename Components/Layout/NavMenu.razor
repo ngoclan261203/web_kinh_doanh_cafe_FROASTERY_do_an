@@ -1,0 +1,269 @@
+﻿@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Routing
+@rendermode InteractiveServer
+
+
+@inject NavigationManager Navigation
+
+
+
+
+<!-- Bootstrap JS + Bootstrap Icons -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<div class="top-row navbar navbar-dark custom-navbar" @onclick="NavigateHome" style="cursor: pointer;">
+    <div class="container-fluid">
+        <div class="navbar-brand custom-brand" >
+            <img src="/images/logo.png" class="custom-logo" />
+            <span class="custom-text">F-Roastery</span>
+        </div>
+    </div>
+</div>
+
+<div class="nav-scrollable">
+    <nav class="nav flex-column">
+        
+        <!-- Quản lý Hệ thống -->
+        <div class="nav-item px-3">
+            <a class="nav-link d-flex justify-content-between align-items-center"
+            @onclick="ToggleHeThong" @onclick:preventDefault>
+                <span><span class="bi-house-door-fill me-2"></span> Quản lý hệ thống</span>
+                <span class="bi @(showHeThong ? "bi-chevron-down" : "bi-chevron-right")"></span>
+            </a>
+            @if (showHeThong)
+            {
+                <ul class="submenu">
+                    <li>
+                        <NavLink class="nav-link" href="/quan-ly-nguoi-dung">
+                            <span class="bi-person-lines-fill me-2"></span> Tài khoản
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink class="nav-link" href="/quan-ly-quyen">
+                            <span class="bi-key-fill me-2"></span> Quyền
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink class="nav-link" href="/phan-quyen">
+                            <span class="bi-shield-lock-fill me-2"></span> Phân quyền
+                        </NavLink>
+                    </li>
+                </ul>
+            }
+        </div>
+
+
+        <div class="nav-item px-3">
+            <a class="nav-link d-flex justify-content-between align-items-center"
+               @onclick="ToggleDanhMuc" @onclick:preventDefault>
+                <span><span class="bi-card-checklist me-2"></span> Quản lý danh mục</span>
+                <span class="bi @(showDanhMuc ? "bi-chevron-down" : "bi-chevron-right")"></span>
+            </a>
+            @if (showDanhMuc)
+            {
+                <ul class="submenu">
+                    <li>
+                        <NavLink class="nav-link" href="/loai_sp">
+                            <span class="bi-diagram-3-fill me-2"></span> Loại sản phẩm
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink class="nav-link" href="/quan-ly-nguyen-lieu">
+                            <span class="bi-box-seam me-2"></span> Nguyên liệu
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink class="nav-link" href="/quan-ly-loai-tin">
+                            <span class="bi-megaphone-fill me-2"></span> Loại tin tức
+                        </NavLink>
+                    </li>
+                </ul>
+            }
+        </div>
+
+        <div class="nav-item px-3">
+                <a class="nav-link d-flex justify-content-between align-items-center"
+                @onclick="ToggleQuangBa" @onclick:preventDefault>
+                    <span><span class="bi-badge-ad me-2"></span> Quảng bá</span>
+                    <span class="bi @(showQuangBa ? "bi-chevron-down" : "bi-chevron-right")"></span>
+                </a>
+                @if (showQuangBa)
+                {
+                    <ul class="submenu">
+                        <li>
+                            <NavLink class="nav-link" href="/quan-ly-su-kien">
+                                <span class="bi-journal-text me-2"></span> Sự kiện
+                            </NavLink>
+                        </li>
+                        <li>
+                            <NavLink class="nav-link" href="/quanly_tintuc">
+                                <span class="bi-newspaper me-2"></span> Tin tức
+                            </NavLink>
+                        </li>
+                        @* <li>
+                            <NavLink class="nav-link" href="/quan-ly-danh-gia">
+                                <span class="bi-star-fill me-2"></span> Đánh giá
+                            </NavLink>
+                        </li> *@
+                    </ul>
+                }
+        </div>
+
+        <div class="nav-item px-3">
+            <a class="nav-link d-flex justify-content-between align-items-center" 
+               @onclick="ToggleKinhDoanh" @onclick:preventDefault>
+                <span><span class="bi-briefcase me-2"></span> Quản lý kinh doanh</span>
+                <span class="bi @(showKinhDoanh ? "bi-chevron-down" : "bi-chevron-right")"></span>
+            </a>
+            @if (showKinhDoanh)
+            {
+                <ul class="submenu">
+                    <li>
+                        <NavLink class="nav-link" href="/quan-ly-san-pham">
+                            <span class="bi-bag me-2"></span> Sản phẩm
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink class="nav-link" href="/phieunhap">
+                            <span class="bi-cart-check me-2"></span> Phiếu nhập
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink class="nav-link" href="/quan-ly-cong-thuc">
+                            <span class="bi-file-text me-2"></span> Công thức
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink class="nav-link" href="/chebien">
+                            <span class="bi-basket3 me-2"></span> Chế biến
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink class="nav-link" href="/donhang">
+                            <span class="bi-calendar-check me-2"></span> Đơn hàng
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink class="nav-link" href="/quan-ly-danh-gia">
+                            <span class="bi-chat-square-dots me-2"></span> Đánh giá phản hồi
+                        </NavLink>
+                    </li>
+                </ul>
+            }
+        </div>
+
+        <div class="nav-item px-3">
+            <a class="nav-link d-flex justify-content-between align-items-center" 
+               @onclick="ToggleCongNo" @onclick:preventDefault>
+                <span><span class="bi-wallet2 me-2"></span> Quản lý công nợ</span>
+                <span class="bi @(showCongNo ? "bi-chevron-down" : "bi-chevron-right")"></span>
+            </a>
+            @if (showCongNo)
+            {
+                <ul class="submenu">
+                    <li>
+                        <NavLink class="nav-link" href="/doitac">
+                            <span class="bi-person-lines-fill me-2"></span> Đối tác
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink class="nav-link" href="/quan-ly-phieu-thu">
+                            <span class="bi-receipt-cutoff me-2"></span> Phiếu thu
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink class="nav-link" href="/quan-ly-phieu-chi">
+                            <span class="bi-credit-card-2-back me-2"></span> Phiếu chi
+                        </NavLink>
+                    </li>
+                </ul>
+            }
+        </div>
+
+        <div class="nav-item px-3">
+    <a class="nav-link d-flex justify-content-between align-items-center"
+       @onclick="ToggleThongKe" @onclick:preventDefault>
+        <span><span class="bi-bar-chart-line me-2"></span> Báo cáo thống kê</span>
+        <span class="bi @(showThongKe ? "bi-chevron-down" : "bi-chevron-right")"></span>
+    </a>
+    @if (showThongKe)
+    {
+        <ul class="submenu">
+            <li>
+                <NavLink class="nav-link" href="/thong-ke-doanh-thu">
+                    <span class="bi-graph-up-arrow me-2"></span> Doanh thu & SLĐH
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="nav-link" href="/thong-ke-cong-no">
+                    <span class="bi-wallet me-2"></span> Công nợ đối tác
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="nav-link" href="/thong-ke-che-bien">
+                    <span class="bi-basket me-2"></span> Sản phẩm Chế biến
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="nav-link" href="/thong-ke-ban-chay">
+                    <span class="bi-fire me-2"></span> Sản phẩm bán chạy
+                </NavLink>
+            </li>
+        </ul>
+    }
+</div>
+
+    </nav>
+
+    <div class="bottom-row custom-bottom-bar">
+        <div class="bottom-row-content horizontal-buttons">
+            <button class="bottom-row-icon-button " @onclick="NavigateToLogout">
+                <span class="bi-power"></span>
+            </button>
+            
+            <button class="bottom-row-icon-button" @onclick="@(() => Navigation.NavigateTo("capnhattk"))">
+                <span class="bi-gear"></span>
+            </button>        
+        </div>
+    </div>
+
+
+    @* <div class="text-end mt-3">
+        <button @onclick="NavigateToLogout" class="btn btn-danger">Đăng Xuất</button>
+    </div> *@
+</div>
+
+@code {
+    // Phương thức chuyển hướng người dùng đến trang đăng xuất
+    private void NavigateToLogout()
+    {
+        Navigation.NavigateTo("/logout");
+    }
+
+
+    private bool showHeThong = false;
+    private bool showDanhMuc = false;
+    private bool showQuangBa = false;
+    private bool showKinhDoanh = false;
+    private bool showCongNo = false;
+
+    private void ToggleHeThong()
+    {
+        showHeThong = !showHeThong;
+    }
+    private void ToggleDanhMuc() => showDanhMuc = !showDanhMuc;
+        private void ToggleQuangBa()
+    {
+        showQuangBa = !showQuangBa;
+    }
+    private void ToggleKinhDoanh() => showKinhDoanh = !showKinhDoanh;
+    private void ToggleCongNo() => showCongNo = !showCongNo;
+    private bool showThongKe = false;
+private void ToggleThongKe() => showThongKe = !showThongKe;
+
+private void NavigateHome()
+    {
+        Navigation.NavigateTo("/home_admin");
+    }
+}

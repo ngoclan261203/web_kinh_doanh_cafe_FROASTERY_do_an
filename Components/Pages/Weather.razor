@@ -1,0 +1,149 @@
+﻿@* @page "/weather"
+
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@rendermode InteractiveServer
+
+<PageTitle>Danh Mục Sản Phẩm</PageTitle>
+
+@using FROASTERY.Models
+@using FROASTERY.Data
+
+<style>
+    .title {
+        text-align: center;
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+
+    .category-container {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .category-card {
+        width: 220px;  /* Giảm chiều rộng thẻ loại sản phẩm */
+        cursor: pointer;
+    }
+
+    .category-card img {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 10px;
+    }
+
+    .category-card h3 {
+        margin-top: 10px;
+        font-size: 1.1rem;  /* Giảm kích thước font */
+        text-align: center;
+    }
+
+    /* Điều chỉnh kích thước sản phẩm */
+    .product-card {
+        width: 150px;  /* Giảm kích thước thẻ sản phẩm */
+        margin: 0 auto;
+    }
+
+    .product-card img {
+        height: 80px;  /* Giảm kích thước hình ảnh sản phẩm */
+    }
+
+    .product-card .card-body {
+        padding: 10px;
+    }
+
+    .price {
+        font-weight: bold;
+        color: #d9534f;
+    }
+</style>
+<h2 class="title">Danh Mục Sản Phẩm</h2>
+
+<!-- Hiển thị danh mục loại sản phẩm -->
+<div class="category-container">
+    @foreach (var loai in LoaiSanPhams)
+    {
+        <div class="card category-card" @onclick="() => FilterByCategory(loai.MaLoaiSP)">
+            <img src="@loai.Anh" alt="@loai.TenLoaiSP" class="card-img-top" />
+            <div class="card-body">
+                <h5 class="card-title">@loai.TenLoaiSP</h5>
+            </div>
+        </div>
+    }
+</div>
+
+
+<div class="row">
+    @foreach (var sp in SanPhams)
+    {
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <img src="@sp.Anh" alt="@sp.TenSanPham" class="card-img-top" />
+                <div class="card-body text-center">
+                    <h5 class="card-title">@sp.TenSanPham</h5>
+                    <p class="card-text">@sp.MoTa</p>
+                    <p class="price">Giá: @GetPriceRange(sp) VNĐ</p>
+                    <button class="btn btn-primary" @onclick="() => ViewDetail(sp.MaSanPham)">Xem Chi Tiết</button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<SanPham> SanPhams = new();
+    private List<LoaiSanPham> LoaiSanPhams = new();  // Danh sách loại sản phẩm
+    private int? selectedCategoryId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Lấy danh sách loại sản phẩm
+        LoaiSanPhams = await DbContext.LoaiSanPhams.ToListAsync();
+
+        // Lấy danh sách sản phẩm kèm loại sản phẩm và khối lượng giá
+        SanPhams = await DbContext.SanPhams
+            .Include(sp => sp.KhoiLuongs) // Load bảng Khối Lượng - Giá
+            .Include(sp => sp.LoaiSanPham) // Load bảng Loại Sản Phẩm
+            .ToListAsync();
+    }
+
+    // Hàm lọc sản phẩm theo loại
+    private void FilterByCategory(int categoryId)
+    {
+        selectedCategoryId = categoryId;
+        SanPhams = DbContext.SanPhams
+            .Include(sp => sp.KhoiLuongs)
+            .Include(sp => sp.LoaiSanPham)
+            .Where(sp => sp.MaLoaiSP == categoryId)
+            .ToList();
+    }
+
+    private string GetPriceRange(SanPham sp)
+    {
+        if (sp.KhoiLuongs?.Any() != true)
+        {
+            return "Chưa có";
+        }
+
+        var prices = sp.KhoiLuongs
+            .Where(kl => kl.Gia.HasValue)
+            .Select(kl => kl.Gia.Value)
+            .ToList();
+
+        if (!prices.Any())
+        {
+            return "Chưa có";
+        }
+
+        return prices.Count == 1 ? prices[0].ToString("N0") : $"{prices.Min():N0} - {prices.Max():N0}";
+    }
+
+    private void ViewDetail(int id)
+    {
+        // Chuyển hướng đến trang chi tiết sản phẩm (chưa thực hiện)
+    }
+} *@

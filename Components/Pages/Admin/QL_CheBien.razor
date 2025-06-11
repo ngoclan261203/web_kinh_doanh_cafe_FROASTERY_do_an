@@ -1,0 +1,737 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FROASTERY.Services;
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+@code {
+    private ClaimsPrincipal? _currentUser;
+
+    // Thay đổi từ OnInitializedAsync sang OnAfterRenderAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Lấy trạng thái xác thực của người dùng
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                // In thông tin người dùng và trạng thái xác thực
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                Console.WriteLine("UserId: " + _currentUser?.FindFirst("UserId")?.Value); // In mã người dùng
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("User not authenticated.");
+                    // Chuyển hướng người dùng đến trang đăng nhập nếu chưa xác thực
+                    Navigation.NavigateTo("/dangnhap", true);
+                    return;
+                }
+
+                // Kiểm tra quyền Admin
+                if (!_currentUser.IsInRole("Admin") &&
+                !_currentUser.IsInRole("Kinh doanh") )
+                    
+                {
+                    Console.WriteLine("User does not have Admin role. Redirecting to /home.");
+                    // Chuyển hướng người dùng không phải Admin về trang chủ
+                    Navigation.NavigateTo("/home_admin", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+    }
+}
+
+
+
+
+@page "/chebien"
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@inject IWebHostEnvironment Environment
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+@using System.IO
+@using FROASTERY.Components.Shared
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+<style>
+    .description {
+        max-height: 100px; /* Giới hạn chiều cao của mô tả */
+        overflow: hidden; /* Ẩn phần nội dung vượt quá */
+        transition: max-height 0.3s ease-out;
+    }
+
+    .expanded {
+        max-height: none; /* Hiển thị toàn bộ khi mở rộng */
+    }
+</style>
+<ErrorDisplay ErrorMessage="@DbErrorMessage" OnClear="ClearErrorMessage" />
+
+<PageTitle>Quản lý Chế Biến</PageTitle>
+
+<div class="container mt-4">
+    <h3 class="text-center mb-4">Quản lý Chế Biến</h3>
+    <h5>@(Editing ? "Chỉnh sửa" : "Thêm mới") Chế Biến</h5>
+
+    <EditForm Model="CheBien" OnValidSubmit="SaveAsync" class="border p-4 rounded shadow bg-light mb-4">
+        <DataAnnotationsValidator />
+        <div class="row mb-3">
+            <!-- Cột bên trái -->
+            <div class="col-md-2">
+                <label>Mã Chế Biến:</label>
+                <input type="text" @bind="CheBien.MaCheBien" class="form-control mb-2" readonly />
+            </div>
+            <div class="col-md-4">
+                <label>Thời gian:</label>
+                <div class="position-relative mb-2 validation-wrapper">
+                    <input type="datetime-local" @bind="CheBien.ThoiGian" class="form-control mb-2" />
+                    <ValidationMessage For="@(() => CheBien.ThoiGian)" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label>Số lượng:</label>
+                <div class="position-relative mb-2 validation-wrapper">
+                    <input type="number" step="1" @bind="CheBien.SoLuongSP" class="form-control mb-2" />
+                    <ValidationMessage For="@(() => CheBien.SoLuongSP)" />
+                </div>
+                
+            </div>
+            <div class="col-md-4">
+                <label>Sản phẩm:</label>
+                <select @bind="CheBien.MaSanPham"  @bind:after= "OnSanPhamChanged" class="form-control mb-2">
+                    <option value="0">-- Chọn Sản Phẩm --</option>
+                    @foreach (var sp in SanPhams)
+                    {
+                        <option value="@sp.MaSanPham">@sp.TenSanPham</option>
+                    }
+                </select>
+            </div>   
+            
+        </div>
+
+    <div class="row mb-3">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="d-inline-block ">Thông Tin Nguyên Liệu</h5>
+            <button type="button" @onclick="AddNguyenLieu" class="btn btn-success btn-sm px-4 ms-3">Thêm Nguyên Liệu</button>
+        </div>
+        <table class="table mt-3">
+            <thead>
+                <tr>
+                    <th>Nguyên Liệu</th>
+                    <th style="width: 180px">Số Lượng</th>
+                    <th style="width: 120px">Đơn vị tính</th>     
+                    <th style="width: 100px"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var ct in ChiTietCheBiens)
+                {
+                    var nguyenLieu = NguyenLieus.FirstOrDefault(nl => nl.MaNguyenLieu == ct.MaNguyenLieu);
+
+                    <tr>
+                        <td>
+                            <select @bind="ct.MaNguyenLieu" class="form-control">
+                                @foreach (var nl in NguyenLieus)
+                                {
+                                    <option value="@nl.MaNguyenLieu">@nl.TenNguyenLieu</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <input type="number" step="0.01" @bind="ct.SoLuong" class="form-control" />
+                        </td>
+                        <td>
+                            @nguyenLieu?.DonViTinh
+                        </td>
+                        <td>
+                            <button type="button" @onclick="() => RemoveNguyenLieu(ct)" class="btn btn-danger">Xóa</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        </div>
+        <div class="col-md-4">
+               <label>Công Thức:</label>
+                <textarea class="form-control mb-2" rows="6" readonly>@NoiDungCongThuc</textarea>
+        </div>
+    </div>  
+        <div class="d-flex justify-content-center gap-3 mt-2">
+            <button type="submit" class="btn btn-save">Lưu</button>
+            <button type="button" class="btn btn-cancel" @onclick="ResetForm">Hủy</button>
+        </div>
+    </EditForm>
+
+    <div class="card p-3 mb-4 shadow-sm">
+    <div class="row g-2 align-items-end">
+        <!-- Ô tìm kiếm từ khóa -->
+        <div class="col-md-4">
+            <label class="form-label">Tìm kiếm</label>
+            <input type="text" @bind="SearchQuery" class="form-control"
+                   placeholder="Nhập thông tin sản phẩm,..." />
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">Từ ngày</label>
+            <input type="date" @bind="StartDate" class="form-control" />
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">Đến ngày</label>
+            <input type="date" @bind="EndDate" class="form-control" />
+        </div>
+
+        <!-- Nút tìm kiếm nằm ngang hàng và căn phải -->
+        <div class="col-md-2 d-flex justify-content-end">
+            <button @onclick="Search" class="btn btn-success px-4">Tìm kiếm</button>
+        </div>
+    </div>
+</div>
+
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 60px">Mã</th>
+                    <th style ="width: 110px">Thời Gian</th>
+                    <th style ="width: 200px">Sản Phẩm</th>
+                    <th style ="width: 60px">SL SP</th>
+                    <th style ="width: 250px">Nguyên Liệu</th>
+                    <th>Công Thức</th>
+                    <th style="width: 128px">Hành Động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var cb in CheBiens)
+                {
+                    <tr>
+                        <td>@cb.MaCheBien</td>
+                        <td>@cb.ThoiGian.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@cb.SanPham?.TenSanPham</td>
+                        <td>@cb.SoLuongSP</td>
+                        <td>
+                            @if (CheBiens != null && cb.CTCBNguyenLieus != null)
+                        {
+                            <ul>
+                            @foreach (var ct in cb.CTCBNguyenLieus)
+                            {
+                                var nguyenLieu = NguyenLieusAll.FirstOrDefault(nl => nl.MaNguyenLieu == ct.MaNguyenLieu);
+                                if (nguyenLieu != null)
+                                {
+                                    <li>
+                                        @nguyenLieu?.TenNguyenLieu: @ct.SoLuong @nguyenLieu?.DonViTinh
+                                    </li>
+                                }
+                            }
+                            </ul>
+                        }
+                            
+                        </td>
+
+                        <td>
+                            @if (cb.MaCongThuc.HasValue)
+                            {
+                                <div class="description @(detailExpandedClass.ContainsKey(cb.MaCongThuc.Value) && detailExpandedClass[cb.MaCongThuc.Value] ? "expanded" : "")">
+                                    @((MarkupString)(cb.CongThuc?.CongThucMoTa != null ? cb.CongThuc.CongThucMoTa.Replace("\r\n", "<br/>").Replace("\n", "<br/>") : "")) 
+                                </div>
+                                @if (!string.IsNullOrEmpty(cb.CongThuc?.CongThucMoTa) && cb.CongThuc.CongThucMoTa.Length > 100)
+                                {
+                                    <button class="btn btn-link p-0 shadow-none fst-italic small" @onclick="() => ToggleDetail(cb.MaCongThuc.Value)">
+                                        @(detailExpandedClass.ContainsKey(cb.MaCongThuc.Value) && detailExpandedClass[cb.MaCongThuc.Value] ? "Ẩn bớt" : "Xem thêm")
+                                    </button>
+                                }
+                            }
+
+                        </td>
+
+                        <td>
+                            <button class="btn btn-warning mb-1" @onclick="() => EditCheBien(cb)">Sửa</button>
+                            <button class="btn btn-danger" @onclick="() => DeleteCheBien(cb.MaCheBien)">Xóa</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private List<CheBien> CheBiens = new();
+    private List<CheBien> FullCheBiens = new();  
+    private List<SanPham> SanPhams = new();
+    private List<NguyenLieu> NguyenLieus = new();
+             private List<NguyenLieu> NguyenLieusAll = new();
+    private List<CTCBNguyenLieu> ChiTietCheBiens = new();
+    private CheBien CheBien = new();
+    private bool Editing = false;
+    private string NoiDungCongThuc = string.Empty;
+
+   private string? SearchQuery { get; set; }
+    private DateTime? StartDate { get; set; }
+    private DateTime? EndDate { get; set; }
+
+    
+    protected override async Task OnInitializedAsync()
+    {
+       FullCheBiens = await DbContext.CheBiens
+            .Include(p => p.SanPham)
+            .Include(p => p.CongThuc) // 👈 THÊM DÒNG NÀY
+            .Include(p => p.CTCBNguyenLieus)
+            .ThenInclude(ct => ct.NguyenLieu)
+            .Where(p => !p.DaXoa)
+            .AsNoTracking()
+            .ToListAsync();
+        CheBiens = new List<CheBien>(FullCheBiens);
+        SanPhams = await DbContext.SanPhams.AsNoTracking().Where(p => !p.DaXoa).ToListAsync();
+        NguyenLieus = await DbContext.NguyenLieus.AsNoTracking().Where(p => !p.DaXoa).ToListAsync();
+        NguyenLieusAll = await DbContext.NguyenLieus.AsNoTracking().ToListAsync();
+        CheBiens.Reverse();
+    }
+
+   private async Task CapNhatKhoSanPhamAsync(int? maSanPhamCu, int? maSanPhamMoi, int soLuongCu, int soLuongMoi)
+{
+    // 1. Cập nhật sản phẩm mới (nếu có)
+    if (maSanPhamMoi.HasValue)
+    {
+        var sanPhamMoi = await DbContext.SanPhams.FirstOrDefaultAsync(sp => sp.MaSanPham == maSanPhamMoi.Value);
+        if (sanPhamMoi != null)
+        {
+            int chenhlech = soLuongMoi;
+            if (maSanPhamCu == maSanPhamMoi)
+            {
+                // Nếu không đổi sản phẩm, chỉ tính chênh lệch
+                chenhlech = soLuongMoi - soLuongCu;
+            }
+
+            Console.WriteLine($"[Cập nhật] Sản phẩm mới {sanPhamMoi.MaSanPham}: cũ {soLuongCu}, mới {soLuongMoi}, chênh lệch {chenhlech}");
+
+            sanPhamMoi.SoLuong = (sanPhamMoi.SoLuong ?? 0) + chenhlech;
+            if (sanPhamMoi.SoLuong < 0)
+                sanPhamMoi.SoLuong = 0;
+        }
+        else
+        {
+            Console.WriteLine($"[Không tìm thấy] Sản phẩm mới {maSanPhamMoi.Value}");
+        }
+    }
+
+    // 2. Nếu sản phẩm cũ khác sản phẩm mới → giảm số lượng sản phẩm cũ
+    if (maSanPhamCu.HasValue && maSanPhamCu != maSanPhamMoi)
+    {
+        var sanPhamCu = await DbContext.SanPhams.FirstOrDefaultAsync(sp => sp.MaSanPham == maSanPhamCu.Value);
+        if (sanPhamCu != null)
+        {
+            Console.WriteLine($"[Giảm] Sản phẩm cũ {sanPhamCu.MaSanPham}: giảm {soLuongCu}");
+            sanPhamCu.SoLuong = (sanPhamCu.SoLuong ?? 0) - soLuongCu;
+            if (sanPhamCu.SoLuong < 0)
+                sanPhamCu.SoLuong = 0;
+        }
+        else
+        {
+            Console.WriteLine($"[Không tìm thấy] Sản phẩm cũ {maSanPhamCu.Value}");
+        }
+    }
+}
+
+
+
+    
+    private async Task SaveAsync()
+    {
+        DbErrorMessage = null; 
+        if (!ValidateChiTietPhieuNhap())
+        {
+            return;
+        }
+        // Kiểm tra kho nguyên liệu trước khi thực hiện lưu
+        
+        try
+        {
+            if (Editing)
+            {
+                if (!await KiemTraKhoNguyenLieuAsync(ChiTietCheBiens, ChiTietCu))  // Kiểm tra kho trước
+                {
+                    return;  // Nếu không đủ kho, dừng lại
+                }
+                var existingCheBien = await DbContext.CheBiens
+                    .Include(c => c.CTCBNguyenLieus)
+                    .FirstOrDefaultAsync(c => c.MaCheBien == CheBien.MaCheBien);
+
+                if (existingCheBien != null)
+                {
+                    int soLuongCu = existingCheBien.SoLuongSP ?? 0;
+
+                    await CapNhatKhoSanPhamAsync(
+    existingCheBien.MaSanPham,
+    CheBien.MaSanPham,
+    existingCheBien.SoLuongSP ?? 0,
+    CheBien.SoLuongSP ?? 0);
+
+
+                    await CapNhatKhoTheoChiTietAsync(ChiTietCu, ChiTietCheBiens);
+                    // Cập nhật thông tin chính
+                    existingCheBien.ThoiGian = CheBien.ThoiGian;
+                    existingCheBien.MaSanPham = CheBien.MaSanPham;
+                    existingCheBien.SoLuongSP = CheBien.SoLuongSP;
+                    existingCheBien.MaCongThuc = CheBien.MaCongThuc;
+
+                    
+                    // Xóa hết chi tiết cũ
+                    existingCheBien.CTCBNguyenLieus.Clear();
+
+                    // Thêm lại chi tiết mới
+                    foreach (var ct in ChiTietCheBiens)
+                    {
+                        existingCheBien.CTCBNguyenLieus.Add(new CTCBNguyenLieu
+                        {
+                            MaNguyenLieu = ct.MaNguyenLieu,
+                            SoLuong = ct.SoLuong,
+                        });
+                    }
+
+                    await DbContext.SaveChangesAsync();
+                }
+            }
+            else
+            {
+                if (!await KiemTraKhoNguyenLieuAsync(ChiTietCheBiens,new List<CTCBNguyenLieu>() ))  // Kiểm tra kho trước
+                {
+                    return;  // Nếu không đủ kho, dừng lại
+                }
+                // Thêm mới chế biến và chi tiết
+                DbContext.CheBiens.Add(CheBien);
+                await DbContext.SaveChangesAsync();
+
+                foreach (var ct in ChiTietCheBiens)
+                {
+                    ct.MaCheBien = CheBien.MaCheBien;
+                    await DbContext.CTCBNguyenLieus.AddAsync(ct);
+                }
+
+                await DbContext.SaveChangesAsync();
+                await CapNhatKhoSanPhamAsync(
+                    null,
+                    CheBien.MaSanPham,
+                    0,
+                    CheBien.SoLuongSP ?? 0);
+                await CapNhatKhoTheoChiTietAsync(new List<CTCBNguyenLieu>(), ChiTietCheBiens);
+                await DbContext.SaveChangesAsync();
+            }
+
+            await OnInitializedAsync();
+            ResetForm();
+
+
+        }
+        catch (Exception ex)
+        {
+            DbErrorMessage = $"Lỗi: {ex.Message}";
+        }
+    }
+
+    private List<CTCBNguyenLieu> ChiTietCu = new();
+    private async Task EditCheBien(CheBien cb)
+    {
+        CheBien = new CheBien
+        {
+            MaCheBien = cb.MaCheBien,
+            ThoiGian = cb.ThoiGian,
+            MaSanPham = cb.MaSanPham,
+            SoLuongSP = cb.SoLuongSP,
+            MaCongThuc = cb.MaCongThuc
+        };
+        ChiTietCheBiens = cb.CTCBNguyenLieus
+            .Select(ct => new CTCBNguyenLieu
+            {
+                MaCheBien = ct.MaCheBien,
+                MaNguyenLieu = ct.MaNguyenLieu,
+                SoLuong = ct.SoLuong
+            })
+            .ToList();
+
+        ChiTietCu = ChiTietCheBiens.Select(ct => new CTCBNguyenLieu
+            {
+                MaCheBien = ct.MaCheBien,
+                MaNguyenLieu = ct.MaNguyenLieu,
+                SoLuong = ct.SoLuong,
+               
+            }).ToList();
+        Editing = true;
+        await OnSanPhamChanged();
+       
+      
+    }
+
+    private async Task DeleteCheBien(int id)
+    {
+       var entity = await DbContext.CheBiens.FindAsync(id);
+
+        if (entity != null)
+        {
+            var details = DbContext.CTCBNguyenLieus.Where(ct => ct.MaCheBien == id);
+            // Trừ lại số lượng sản phẩm đã cộng trước đó
+            await CapNhatKhoSanPhamAsync(
+                entity.MaSanPham,
+                null,
+                entity.SoLuongSP ?? 0,
+                0);
+ // soLuongCu = hiện tại, soLuongMoi = 0
+        // Cập nhật kho lại theo các chi tiết phiếu nhập đã xóa
+            await CapNhatKhoTheoChiTietAsync(details.ToList(), new List<CTCBNguyenLieu>());
+            await DbContext.SaveChangesAsync();
+
+            entity.DaXoa = true;
+            @* DbContext.CheBiens.Remove(entity); *@
+            await DbContext.SaveChangesAsync();
+            await OnInitializedAsync();
+        }
+    }
+
+   
+
+    private void ResetForm()
+    {
+        CheBien = new CheBien();
+        ChiTietCheBiens.Clear();
+        Editing = false;
+        DbErrorMessage = null;
+        NoiDungCongThuc = string.Empty;
+    }
+
+    private async Task<bool> KiemTraKhoNguyenLieuAsync(
+    List<CTCBNguyenLieu> chiTietMoi,
+    List<CTCBNguyenLieu> chiTietCu)
+{
+    // Lấy danh sách tất cả mã nguyên liệu (cũ + mới)
+    var allKeys = chiTietMoi.Select(x => x.MaNguyenLieu)
+                            .Union(chiTietCu.Select(x => x.MaNguyenLieu));
+
+    foreach (var maNl in allKeys)
+    {
+        // Lấy số lượng từ chi tiết mới và chi tiết cũ
+        var moi = chiTietMoi.FirstOrDefault(x => x.MaNguyenLieu == maNl)?.SoLuong ?? 0;
+        var cu = chiTietCu.FirstOrDefault(x => x.MaNguyenLieu == maNl)?.SoLuong ?? 0;
+
+        var chenhlech = moi - cu;  // nếu âm thì đang giảm, dương là tăng
+
+        if (chenhlech > 0)  // Chỉ kiểm tra kho khi chênh lệch là dương (tăng)
+        {
+            var nguyenLieu = await DbContext.NguyenLieus
+                .FirstOrDefaultAsync(nl => nl.MaNguyenLieu == maNl);
+            if (nguyenLieu != null)
+            {
+                var soLuongTonKho = nguyenLieu.SoLuong ?? 0f;
+                if (soLuongTonKho < chenhlech)
+                {
+                    DbErrorMessage = $"Nguyên liệu '{nguyenLieu.TenNguyenLieu}' không đủ kho để cập nhật. Hiện còn {soLuongTonKho}, cần thêm {chenhlech}.";
+                    return false;
+                }
+            }
+            else
+            {
+                DbErrorMessage = $"Không tìm thấy nguyên liệu với mã {maNl}.";
+                return false;
+            }
+        }
+    }
+
+    return true; // Kiểm tra kho thành công
+}
+
+
+
+    private async Task CapNhatKhoTheoChiTietAsync(List<CTCBNguyenLieu> chiTietCu, List<CTCBNguyenLieu> chiTietMoi)
+    {
+        // 1. Cập nhật nguyên liệu có trong danh sách mới
+       // 1. Cập nhật nguyên liệu có trong danh sách mới
+    foreach (var chiTietMoiItem in chiTietMoi)
+    {
+        var nguyenLieu = await DbContext.NguyenLieus
+            .FirstOrDefaultAsync(nl => nl.MaNguyenLieu == chiTietMoiItem.MaNguyenLieu);
+        
+        if (nguyenLieu != null)
+        {
+            var chiTietCuItem = chiTietCu.FirstOrDefault(x => x.MaNguyenLieu == nguyenLieu.MaNguyenLieu);
+            float soLuongCu = chiTietCuItem?.SoLuong ?? 0f; // Thay int thành float
+            float soLuongMoi = chiTietMoiItem.SoLuong ?? 0f; // Thay int thành float
+            float chenhlech = soLuongMoi - soLuongCu;
+
+            Console.WriteLine($"[Cập nhật] Nguyên liệu {nguyenLieu.MaNguyenLieu}: cũ {soLuongCu}, mới {soLuongMoi}, chênh lệch {chenhlech}");
+
+            nguyenLieu.SoLuong = (float?)Math.Round((nguyenLieu.SoLuong ?? 0f) - chenhlech, 2);
+            if (nguyenLieu.SoLuong < 0)
+                nguyenLieu.SoLuong = 0f;
+        }
+        else
+        {
+            Console.WriteLine($"[Không tìm thấy] Nguyên liệu {chiTietMoiItem.MaNguyenLieu}");
+        }
+    }
+
+    // 2. Xử lý nguyên liệu bị xóa (có trong chiTietCu nhưng không còn trong chiTietMoi)
+    foreach (var chiTietCuItem in chiTietCu)
+    {
+        var stillExists = chiTietMoi.Any(x => x.MaNguyenLieu == chiTietCuItem.MaNguyenLieu);
+        if (!stillExists)
+        {
+            var nguyenLieu = await DbContext.NguyenLieus
+                .FirstOrDefaultAsync(nl => nl.MaNguyenLieu == chiTietCuItem.MaNguyenLieu);
+
+            if (nguyenLieu != null)
+            {
+                Console.WriteLine($"[Xóa] Nguyên liệu {nguyenLieu.MaNguyenLieu}: giảm {chiTietCuItem.SoLuong}");
+
+                nguyenLieu.SoLuong = (float?)Math.Round((nguyenLieu.SoLuong ?? 0f) + (chiTietCuItem.SoLuong ?? 0f), 2);
+
+                if (nguyenLieu.SoLuong < 0)
+                    nguyenLieu.SoLuong = 0f;
+            }
+        }
+    }
+}
+
+
+    // Hàm tìm kiếm
+    private void Search()
+    {
+        var trimmedQuery = SearchQuery?.Trim();
+        
+            CheBiens = FullCheBiens.Where(item =>
+                (
+                     // Điều kiện tìm theo tên sản phẩm
+            string.IsNullOrWhiteSpace(trimmedQuery) ||
+            (item.SanPham?.TenSanPham?.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) == true)
+                ) 
+                &&
+                (
+                    // Lọc theo khoảng thời gian
+                    (!StartDate.HasValue || ( item.ThoiGian.Date >= StartDate.Value.Date)) &&
+                    (!EndDate.HasValue || (item.ThoiGian.Date <= EndDate.Value.Date))
+                )
+
+            ).ToList();
+            CheBiens.Reverse();
+    }
+     private async Task OnSanPhamChanged()
+    {
+        if (CheBien.MaSanPham != 0)
+        {
+            // Tìm công thức theo Mã Sản Phẩm
+            var congThuc = await DbContext.CongThucs
+                .FirstOrDefaultAsync(ct => ct.MaSanPham == CheBien.MaSanPham);
+
+            if (congThuc != null)
+            {
+                NoiDungCongThuc = congThuc.CongThucMoTa;  // Hiển thị nội dung
+                CheBien.MaCongThuc = congThuc.MaCongThuc;    // Lưu mã công thức để sau này lưu vào bảng CheBien
+            }
+            else
+            {
+                NoiDungCongThuc = "Không tìm thấy công thức cho sản phẩm này.";
+                CheBien.MaCongThuc = null;
+            }
+        }
+        else
+        {
+            NoiDungCongThuc = string.Empty;
+            CheBien.MaCongThuc = null;
+        }
+    }
+
+    private bool ValidateChiTietPhieuNhap()
+    {
+        if (CheBien.MaSanPham == 0)
+        {
+            DbErrorMessage = "Vui lòng chọn sản phẩm.";
+            return false;
+        }
+
+        if (ChiTietCheBiens == null || ChiTietCheBiens.Count == 0)
+        {
+            DbErrorMessage = "Vui lòng thêm ít nhất một nguyên liệu trước khi lưu.";
+            return false;
+        }
+        var spApDungIds = new HashSet<int>();
+        foreach (var ct in ChiTietCheBiens)
+        {
+            if (ct.MaNguyenLieu == 0)
+            {
+                DbErrorMessage = "Có nguyên liệu chưa được chọn.";
+                return false;
+            }
+
+            if (ct.SoLuong <= 0)
+            {
+                DbErrorMessage = "Số lượng phải lớn hơn 0 cho từng nguyên liệu.";
+                return false;
+            }
+
+            
+            if (!spApDungIds.Add(ct.MaNguyenLieu))
+            {
+                DbErrorMessage = "Mỗi nguyên liệu chỉ được chọn một lần.";
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void AddNguyenLieu()
+    {
+        ChiTietCheBiens.Add(new CTCBNguyenLieu());
+    }
+
+    private void RemoveNguyenLieu(CTCBNguyenLieu ct)
+    {
+        ChiTietCheBiens.Remove(ct);
+    }
+
+    private string? DbErrorMessage;
+    private void ClearErrorMessage()
+    {
+        DbErrorMessage = null;
+    }
+
+    // =====code xử lý mở rộng mô tả và chi tiết=====
+    private Dictionary<int, bool> descriptionExpandedClass = new();
+    private Dictionary<int, bool> detailExpandedClass = new();
+
+    private void ToggleDescription(int Id)
+    {
+        if (descriptionExpandedClass.ContainsKey(Id))
+        {
+            descriptionExpandedClass[Id] = !descriptionExpandedClass[Id];
+        }
+        else
+        {
+            descriptionExpandedClass[Id] = true;
+        }
+    }
+
+    private void ToggleDetail(int Id)
+    {
+        if (detailExpandedClass.ContainsKey(Id))
+        {
+            detailExpandedClass[Id] = !detailExpandedClass[Id];
+        }
+        else
+        {
+            detailExpandedClass[Id] = true;
+        }
+    }
+}

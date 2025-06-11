@@ -1,0 +1,259 @@
+@page "/lich-su-don-hang"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FROASTERY.Services;
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@inject IWebHostEnvironment Environment
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+@using System.IO
+@using FROASTERY.Components.Shared
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+<PageTitle>Lịch Sử Đặt Hàng</PageTitle>
+<style>
+        h2 {
+        text-align: left;
+        padding-top: 10px; 
+        @* color: #06622f; *@
+        text-align: center;
+        padding-top: 20px;
+        font-weight: bold;
+</style>
+<h2 class="mb-4">🧾 Lịch Sử Mua Hàng</h2>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+else if (donHangs != null && donHangs.Any())
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Mã Đơn Hàng</th>
+                <th>Thời Gian Đặt</th>
+                <th>Tổng Tiền</th>
+                <th>Phương Thức Thanh Toán</th>
+                <th>Địa Chỉ Giao Hàng</th>
+                <th>Trạng Thái</th>
+                <th>Chi Tiết</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var donHang in donHangs)
+            {
+                <tr>
+                    <td>@donHang.MaDonHang</td>
+                    <td>@donHang.ThoiGian</td>
+                    <td>@donHang.TongTien?.ToString("N0") VNĐ</td>
+                    <td>@donHang.PhuongThucThanhToan</td>
+                    <td>@donHang.DiaChi</td>
+                    <td>@donHang.TrangThai</td>
+                    <td>
+                        <button class="btn btn-info btn-sm" @onclick="() => ShowChiTiet(donHang.MaDonHang)">Xem Chi Tiết</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (selectedDonHang != null)
+    {
+        <div class="modal fade show" id="orderDetailsModal" tabindex="-1" role="dialog" aria-labelledby="orderDetailsModalLabel" aria-hidden="true" style="display: block; background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="orderDetailsModalLabel">Chi Tiết Đơn Hàng #@selectedDonHang.MaDonHang</h5>
+                        <button type="button" class="btn-close" @onclick="CloseChiTiet"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>Thời Gian Đặt:</strong> @selectedDonHang.ThoiGian</p>
+                        <p><strong>Thông Tin Liên Lạc:</strong> @selectedDonHang.ThongTinLienLac</p>
+                        <p><strong>Địa Chỉ Giao Hàng:</strong> @selectedDonHang.DiaChi</p>
+                        <p><strong>Phương Thức Thanh Toán:</strong> @selectedDonHang.PhuongThucThanhToan</p>
+                        <p><strong>Trạng Thái:</strong> @selectedDonHang.TrangThai</p>
+                    @if (selectedDonHang?.MaKhuyenMai.HasValue == true)
+                    {
+                        var maKhuyenMaiStr = selectedDonHang.MaKhuyenMai.ToString();
+                        var khuyenMai = KhuyenMais.FirstOrDefault(km => km.MaSuKien == selectedDonHang.MaKhuyenMai);
+                        if (khuyenMai != null)
+                        {
+                            <p><strong>Mã Khuyến Mãi:</strong> @khuyenMai.TieuDe (@khuyenMai.NoiDung)</p>
+                        }
+                        else
+                        {
+                            <p><strong>Mã Khuyến Mãi:</strong> @maKhuyenMaiStr (Không tìm thấy)</p>
+                        }
+                    }
+                    else
+                    {
+                        <p><strong>Mã Khuyến Mãi:</strong> Không có</p>
+                    }
+                        <hr/>
+                        <h5>Sản Phẩm Đã Đặt</h5>
+                    @if (@selectedDonHang?.ChiTietDonHangs != null && selectedDonHang.ChiTietDonHangs.Any())
+                    {
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Tên Sản Phẩm</th>
+                                    <th>Số Lượng</th>
+                                    <th>Giá Bán</th>
+                                    <th>Thành Tiền</th>
+                                </tr>
+                            </thead>
+                                <tbody>
+                                    @foreach (var chiTiet in selectedDonHang?.ChiTietDonHangs ?? new List<ChiTietDonHang>())
+                                    {
+                                        <tr>
+                                            <td>@SanPhams.FirstOrDefault(sp => sp.MaSanPham == chiTiet.MaSanPham)?.TenSanPham</td>
+                                            <td>@chiTiet?.SoLuong</td>
+                                            <td>@SanPhams.FirstOrDefault(sp => sp.MaSanPham == chiTiet?.MaSanPham)?.Gia?.ToString("N0") VNĐ</td>
+                                            <td>@(((chiTiet?.SoLuong ?? 0) * (SanPhams.FirstOrDefault(sp => sp.MaSanPham == chiTiet?.MaSanPham)?.Gia ?? 0)).ToString("N0")) VNĐ</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                        </table>
+                        <p class="text-end"><strong>Tổng Tiền Đơn Hàng:</strong> @selectedDonHang?.TongTien?.ToString("N0") VNĐ</p>
+                    }
+                    else
+                    {
+                        <p>Không có sản phẩm nào trong đơn hàng này.</p>
+                    }
+                        <hr/>
+                        <h5>Quà Tặng Kèm Theo</h5>
+                        @if (@selectedDonHang?.ChiTietQuaTangDonHangs != null && selectedDonHang.ChiTietQuaTangDonHangs.Any())
+                        {
+                            <ul class="list-group">
+                                @foreach (var quaTang in selectedDonHang.ChiTietQuaTangDonHangs)
+                                {
+                                    var tenSanPhamQuaTang = SanPhams.FirstOrDefault(sp => sp.MaSanPham == quaTang.MaSanPhamQuaTang)?.TenSanPham ?? "Không rõ";
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>@tenSanPhamQuaTang</span>
+                                        <span class="badge bg-success rounded-pill">@quaTang.SoLuong</span>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <p>Không có quà tặng nào kèm theo đơn hàng này.</p>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseChiTiet">Đóng</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <p>Không có đơn hàng nào.</p>
+}
+
+
+@code {
+    private ClaimsPrincipal? _currentUser;
+    private int? maNguoiDung;
+    private List<DonHang>? donHangs;
+    private DonHang? selectedDonHang;
+    private string? errorMessage;
+    private List<SanPham> SanPhams = new();
+    private List<SuKien> KhuyenMais = new();
+    private string? maKhuyenMaiStr;
+    private bool isFirstRender = true; // Thêm biến kiểm tra render lần đầu
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                Console.WriteLine("UserId: " + _currentUser?.FindFirst("UserId")?.Value);
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("User not authenticated. Redirecting to /dangnhap.");
+                    NavigationManager.NavigateTo("/dangnhap", true);
+                    return;
+                }
+
+                var email = _currentUser.Identity.Name!;
+                var nguoiDung = await DbContext.NguoiDungs.FirstOrDefaultAsync(u => u.Email == email);
+
+                if (nguoiDung == null)
+                {
+                    Console.WriteLine($"User with email '{email}' not found. Redirecting to /dangnhap.");
+                    NavigationManager.NavigateTo("/dangnhap", true);
+                    return;
+                }
+
+                maNguoiDung = nguoiDung.MaNguoiDung;
+                Console.WriteLine($"MaNguoiDung for '{email}': {maNguoiDung}");
+
+                await LoadDonHangs();
+                SanPhams = await DbContext.SanPhams.AsNoTracking().ToListAsync();
+                KhuyenMais = await DbContext.SuKiens.Where(sk => sk.MaLoaiTin == 2).ToListAsync();
+                StateHasChanged(); // Cập nhật UI sau khi tải dữ liệu lần đầu
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Lỗi trong quá trình kiểm tra xác thực hoặc tải dữ liệu: {ex.Message}";
+                Console.WriteLine(errorMessage);
+            }
+        }
+        isFirstRender = false;
+    }
+
+    private async Task LoadDonHangs()
+    {
+        if (maNguoiDung.HasValue)
+        {
+            try
+            {
+                donHangs = await DbContext.DonHangs
+                    .Where(d => d.MaNguoiDung == maNguoiDung.Value)
+                    .Include(d => d.ChiTietDonHangs)
+                        .ThenInclude(ct => ct.SanPham)
+                    .Include(d => d.ChiTietQuaTangDonHangs)
+                        .ThenInclude(qt => qt.SanPhamQuaTang)
+                    .Where(p => !p.DaXoa)
+                    .OrderByDescending(d => d.ThoiGian)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Lỗi khi tải lịch sử đơn hàng: {ex.Message}";
+                Console.WriteLine(errorMessage);
+            }
+        }
+    }
+
+    private void ShowChiTiet(int maDonHang)
+    {
+        selectedDonHang = donHangs?.FirstOrDefault(d => d.MaDonHang == maDonHang);
+        maKhuyenMaiStr = selectedDonHang?.MaKhuyenMai?.ToString();
+    }
+
+    private void CloseChiTiet()
+    {
+        selectedDonHang = null;
+        maKhuyenMaiStr = null;
+    }
+}

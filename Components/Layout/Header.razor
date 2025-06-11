@@ -1,0 +1,41 @@
+<header id="header" class="bg-light w-100 p-2 position-fixed zindex-sticky top-0 start-0 end-0">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center gap-3">
+            <a href="/">
+                <div class="d-flex gap-2 align-items-center cursor-pointer">
+                    <img alt="logo" src="froastery-logo.png" class="rounded-circle" style="height: 50px;" />
+                    <h1 class="fw-bold d-none d-lg-flex text-success m-0 fs-4 text-shadow">F-Roastery</h1>
+                </div>
+            </a>
+
+            <nav class="flex-grow-1 px-4 d-none d-lg-flex">
+                <ul class="d-flex gap-5 list-unstyled mb-0">
+                    <li>
+                        <NavLink href="/" Match="NavLinkMatch.Prefix">
+                            <h4 class="fs-6 fw-bold cursor-pointer header-nav">Trang chủ</h4>
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink href="/quangba" Match="NavLinkMatch.Prefix">
+                            <h4 class="fs-6 fw-bold cursor-pointer header-nav">Sản phẩm</h4>
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink href="/tintuc" Match="NavLinkMatch.Prefix">
+                            <h4 class="fs-6 fw-bold cursor-pointer header-nav">Tin Tức</h4>
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink href="/lien-he-danh-gia" Match="NavLinkMatch.Prefix">
+                            <h4 class="fs-6 fw-bold cursor-pointer header-nav">Liên hệ</h4>
+                        </NavLink>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="d-flex gap-3 cursor-pointer">
+                <!-- Nội dung bên phải (giỏ hàng, user...) -->
+            </div>
+        </div>
+    </div>
+</header>

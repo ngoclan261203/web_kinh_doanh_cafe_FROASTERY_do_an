@@ -1,0 +1,624 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FROASTERY.Services;
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+@inject CartService CartService
+
+@page "/gio-hang"
+@inject IJSRuntime JSRuntime
+@using Microsoft.EntityFrameworkCore
+@using System.IO
+@inject IWebHostEnvironment Environment
+@inject AppDbContext DbContext
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+@using FROASTERY.Components
+@using FROASTERY.Components.Shared
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+<PageTitle>🛒 Giỏ Hàng Của Bạn</PageTitle>
+<style>
+        .gio-hang-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .item-gio-hang {
+        display: flex;
+        border: 1px solid #ccc;
+        padding: 16px;
+        border-radius: 8px;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+        background-color: #fff;
+    }
+
+    .anh-san-pham img {
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .thong-tin-san-pham {
+        flex: 1;
+        margin-left: 20px;
+    }
+
+    .thong-tin-san-pham h4 {
+        margin: 0 0 8px 0;
+    }
+
+    .mo-ta {
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .gia {
+        font-weight: bold;
+        margin-top: 8px;
+        margin-bottom: 12px;
+    }
+
+    .so-luong {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .so-luong-input {
+        width: 60px;
+        text-align: center;
+    }
+
+    .action {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+    }
+
+    .action input[type="checkbox"] {
+        transform: scale(1.2);
+    }
+
+    .action button {
+        background-color: transparent;
+        border: none;
+        font-size: 20px;
+        color: #dc3545;
+        cursor: pointer;
+    }
+    .btn-thanh-toan {
+        background-color: #064723;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+    }
+    .delete-button-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+
+    }
+
+    .delete-button {
+        padding: 5px;
+        font-size: 0.8em;
+        cursor: pointer; 
+    }
+
+    .delete-button:hover {
+        background-color: #dc3545 !important; 
+        color: white; 
+    }
+    .form-check-input:checked {
+        background-color: #347451 !important;
+        border-color: #06622f !important;
+    }
+    .btn-thanh-toan:hover {
+        background-color: #e7bf1e;
+    }
+    .btn-gray {
+    background-color: #297858 !important;
+    border-color:  #06622f  !important;
+    color: white !important;
+}
+    .tong-tien {
+        margin-top: 24px;
+        font-size: 1.5rem;
+        font-weight: bold;
+        text-align: right;
+        color: red;
+    }
+        h2 {
+        text-align: left;
+        padding-top: 10px; 
+        @* color: #06622f; *@
+        text-align: center;
+        padding-top: 20px;
+        font-weight: bold;
+    }
+    
+</style>
+<h2 class="mb-4">🛒 Giỏ Hàng Của Bạn</h2>
+@* @if (hienThongBao)
+{
+    <ThongBao NoiDung="@thongBaoNoiDung" MauSac="@thongBaoMauSac" OnCloseThongBao="AnThongBao" />
+} *@
+
+ @if (showError && !string.IsNullOrEmpty(errorMessage))
+{
+    <div class="toast-container position-fixed end-0 p-3" style="top: 4rem; z-index: 1055;">
+        <div class="toast show align-items-center text-bg-danger border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    @errorMessage
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                        @onclick="() => showError = false"></button>
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (gioHang == null || gioHang.Count == 0)
+{
+    <p>Giỏ hàng của bạn đang trống.</p>
+}
+else
+{
+<div class="container mt-4">
+    <div class="gio-hang-container">
+        @foreach (var item in gioHang)
+        {
+            <div class="item-gio-hang">
+                <div class="anh-san-pham">
+                    <img src="@item.AnhSanPham" alt="@item.TenSanPham" />
+                </div>
+                <div class="thong-tin-san-pham">
+                    <h4>@item.TenSanPham</h4>
+                    <p class="mo-ta">@item.MoTa</p>
+                    <p class="gia">Giá: @(item.Gia.HasValue ? item.Gia.Value.ToString("N0") : "0") VNĐ</p>
+                    <div class="so-luong">
+                        Số lượng:
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="@(() => ThayDoiSoLuongAsync(item.MaSanPham, -1))">-</button>
+                        @* <input type="number" class="form-control form-control-sm so-luong-input" value="@item.SoLuong" @onchange="@((ChangeEventArgs e) => CapNhatSoLuongTuInputAsync(item.MaSanPham, e))" readonly min="0" /> *@
+                                                <input type="number" class="form-control form-control-sm so-luong-input" value="@item.SoLuong" readonly min="0" />
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="@(() => ThayDoiSoLuongAsync(item.MaSanPham, 1))">+</button>
+                    </div>
+                </div>
+                <div class="action delete-button-container">
+                    <button class="btn btn-sm btn-danger delete-button" @onclick="@(() => XoaSanPham(item.MaSanPham))">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="select-item">
+                    <input type="checkbox" class="form-check-input" @onchange="@((ChangeEventArgs e) => CheckboxChanged1(item.MaSanPham, (bool)e.Value))" checked="@item.Chon" />
+                </div>
+            </div>
+                                                @*  phần này m thay thành checkbox m gọi bên kia  này  *@
+                    @* <button class="btn btn-primary  btn-gray mt-3" @onclick="LuuGioHangVaoDb">
+                        💾 Lưu thay đổi giỏ hàng
+                    </button> *@
+        }
+    </div>
+    <div class="tong-tien-thanh-toan d-flex justify-content-between align-items-center mt-4">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="chonTatCa" @onchange="OnChonTatCaChanged">
+            <label class="form-check-label" for="chonTatCa">
+                Chọn tất cả
+            </label>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+            <strong class="me-3">Tổng tiền: @TongTien.ToString("N0") VNĐ</strong>
+            @if (gioHang.Any(item => item.Chon == true))
+            {
+                <button class="btn-thanh-toan" @onclick="ThanhToan">Tiến hành thanh toán</button>
+            }
+        </div>
+    </div>
+</div>    
+}
+
+
+@code {
+    private ClaimsPrincipal? _currentUser;
+    private List<GioHangItem> gioHang = new List<GioHangItem>();
+    private int? maNguoiDung = null;
+
+    public decimal TongTien => gioHang.Where(item => item.Chon == true).Sum(item => (decimal)(item.Gia ?? 0) * (item.SoLuong ?? 0));
+    private bool isFirstRender = true;
+    private string thongBaoNoiDung = "";
+    @* private string thongBaoMauSac = "success";
+    private bool hienThongBao = false; *@
+    private bool showError = false;
+  private string? errorMessage;
+
+    private void ShowError(string message)
+  {
+      errorMessage = message;
+      showError = true;
+      _ = Task.Run(async () =>
+      {
+          await Task.Delay(3000);
+          showError = false;
+          await InvokeAsync(StateHasChanged);
+      });
+  }
+
+
+    @* private void ShowSuccess(string message)
+    {
+        thongBaoNoiDung = message;
+        thongBaoMauSac = "success";
+        hienThongBao = true;
+        StateHasChanged(); // Cập nhật UI ngay lập tức để hiển thị thông báo
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(3000);
+            hienThongBao = false;
+            thongBaoNoiDung = ""; // Xóa nội dung thông báo
+            await InvokeAsync(StateHasChanged); // Cập nhật UI để ẩn thông báo
+        });
+    }
+
+    private void AnThongBao()
+    {
+        hienThongBao = false;
+        thongBaoNoiDung = "";
+        StateHasChanged();
+    } *@
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                Console.WriteLine("UserId: " + _currentUser?.FindFirst("UserId")?.Value); // In mã người dùng
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("User not authenticated.");
+                    NavigationManager.NavigateTo("/dangnhap", true);
+                    return;
+                }
+                var email = _currentUser.Identity.Name!;
+                var nguoiDung = await DbContext.NguoiDungs.FirstOrDefaultAsync(u => u.Email == email);
+
+                if (nguoiDung == null)
+                {
+                    NavigationManager.NavigateTo("/dangnhap", true);
+                    return;
+                }
+
+                maNguoiDung = nguoiDung.MaNguoiDung;
+                if (!_currentUser.IsInRole("User"))
+                {
+                    Console.WriteLine("User does not have Admin role. Redirecting to /home.");
+                    NavigationManager.NavigateTo("/", true);
+                    return;
+                }
+
+                // Nếu đã xác thực và đúng vai trò, tải giỏ hàng
+
+            await LoadGioHangTuDb(maNguoiDung.Value);
+                StateHasChanged(); // Cập nhật lại UI sau khi tải giỏ hàng
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+        isFirstRender = false;
+    }
+
+    private async Task LoadGioHangTuDb(int maNguoiDung)
+    {
+
+        var gioHangDb = await DbContext.GioHangs
+            .Include(g => g.SanPham)
+            .Where(g => g.MaNguoiDung == maNguoiDung && !g.SanPham.DaXoa)
+            .ToListAsync();
+
+
+        gioHang = gioHangDb.Select(g => new GioHangItem
+        {
+            MaSanPham = g.MaSanPham,
+            TenSanPham = g.SanPham!.TenSanPham,
+            MoTa = g.SanPham.MoTa,
+            Gia = g.SanPham.Gia,
+            AnhSanPham = g.SanPham.Anh,
+            SoLuong = g.SoLuong,
+            Chon = g.Chon ?? false
+        }).ToList();
+        int totalItems = gioHang.Sum(x => x.SoLuong ?? 0);
+        CartService.SetCount(totalItems);
+        Console.WriteLine($"[GioHang] Đặt lại CartService.SetCount({totalItems})");
+        StateHasChanged();
+    }
+
+    
+
+    public async Task ThemSanPhamVaoGioHang(int maSanPham)
+    {
+        if (maNguoiDung == null)
+        {
+            Console.WriteLine("Người dùng chưa đăng nhập.");
+            return;
+        }
+
+        var gioHangItem = await DbContext.GioHangs
+            .FirstOrDefaultAsync(g => g.MaNguoiDung == maNguoiDung && g.MaSanPham == maSanPham);
+
+        if (gioHangItem != null)
+        {
+            gioHangItem.SoLuong += 1;
+            DbContext.GioHangs.Update(gioHangItem);
+        }
+        else
+        {
+            DbContext.GioHangs.Add(new GioHang
+            {
+                MaSanPham = maSanPham,
+                SoLuong = 1,
+                MaNguoiDung = maNguoiDung.Value
+            });
+        }
+
+        await DbContext.SaveChangesAsync();
+        await LoadGioHangTuDb(maNguoiDung.Value);
+        StateHasChanged();
+    }
+
+    // này là lưu lại tự động lưu csdl cho checkbox m bảo ấy
+    private async Task LuuGioHangVaoDb()
+    {
+        if (maNguoiDung == null) return;
+            // Lấy tất cả các mục giỏ hàng của người dùng từ database
+        var gioHangDbItems = await DbContext.GioHangs
+            .Where(g => g.MaNguoiDung == maNguoiDung)
+            .ToListAsync();
+
+        foreach (var item in gioHang)
+        {
+            var gioHangDbItem = await DbContext.GioHangs
+                .FirstOrDefaultAsync(g => g.MaNguoiDung == maNguoiDung && g.MaSanPham == item.MaSanPham);
+
+            if (gioHangDbItem != null)
+            {
+                gioHangDbItem.SoLuong = item.SoLuong ?? 0;
+                gioHangDbItem.Chon = item.Chon ?? false;
+                DbContext.GioHangs.Update(gioHangDbItem);
+            }
+            else
+            {
+                if ((item.SoLuong ?? 0) > 0)
+                {
+                    DbContext.GioHangs.Add(new GioHang
+                    {
+                        MaNguoiDung = maNguoiDung.Value,
+                        MaSanPham = item.MaSanPham,
+                        SoLuong = item.SoLuong ?? 1,
+                        Chon = item.Chon ?? false
+                    });
+                }
+            }
+        }
+
+        await DbContext.SaveChangesAsync();
+    }
+    private async Task ThayDoiSoLuongAsync(int maSanPham, int thayDoi)
+    {
+        var email = _currentUser?.Identity?.Name;
+        var nguoiDung = await DbContext.NguoiDungs.FirstOrDefaultAsync(u => u.Email == email);
+        if (nguoiDung == null) return;
+
+        var sanPhamDb = await DbContext.SanPhams.Where(p => !p.DaXoa).FirstOrDefaultAsync(sp => sp.MaSanPham == maSanPham);
+        if (sanPhamDb == null)
+        {
+            ShowError("Sản phẩm không tồn tại.");
+            return;
+        }
+
+        int tonKho = sanPhamDb.SoLuong ?? 0;
+
+        var gioHangItem = await DbContext.GioHangs
+            .FirstOrDefaultAsync(g => g.MaNguoiDung == nguoiDung.MaNguoiDung && g.MaSanPham == maSanPham);
+
+        if (gioHangItem != null)
+        {
+            int soLuongMoi = (gioHangItem.SoLuong ?? 0) + thayDoi;
+
+            if (soLuongMoi > tonKho)
+            {
+                ShowError($"Chỉ còn {tonKho} sản phẩm trong kho.");
+                return;
+            }
+
+            gioHangItem.SoLuong = soLuongMoi;
+
+            if (gioHangItem.SoLuong <= 0)
+            {
+                DbContext.GioHangs.Remove(gioHangItem);
+            }
+
+            await DbContext.SaveChangesAsync();
+            await LoadGioHangTuDb(nguoiDung.MaNguoiDung);
+        }
+        else if (thayDoi > 0)
+        {
+            if (tonKho > 0)
+            {
+                // Thêm sản phẩm mới vào giỏ hàng
+                DbContext.GioHangs.Add(new GioHang
+                {
+                    MaSanPham = maSanPham,
+                    MaNguoiDung = nguoiDung.MaNguoiDung,
+                    SoLuong = 1,
+                    Chon = false
+                });
+                await DbContext.SaveChangesAsync();
+                await LoadGioHangTuDb(nguoiDung.MaNguoiDung);
+                ShowError("Đã thêm sản phẩm vào giỏ hàng!");
+               
+            }
+            else
+            {
+                ShowError("Sản phẩm đã hết hàng.");
+            }
+        }
+    }
+
+    @* private async Task CapNhatSoLuongTuInputAsync(int maSanPham, ChangeEventArgs e)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out var soLuongMoi)) return;
+
+        var email = _currentUser?.Identity?.Name;
+        var nguoiDung = await DbContext.NguoiDungs.FirstOrDefaultAsync(u => u.Email == email);
+        if (nguoiDung == null) return;
+
+        var gioHangItem = await DbContext.GioHangs
+            .FirstOrDefaultAsync(g => g.MaNguoiDung == nguoiDung.MaNguoiDung && g.MaSanPham == maSanPham);
+
+        var sanPhamDb = await DbContext.SanPhams
+            .FirstOrDefaultAsync(sp => sp.MaSanPham == maSanPham);
+
+        if (sanPhamDb == null) return;
+
+        int tonKho = sanPhamDb.SoLuong ?? 0;
+
+        if (soLuongMoi > tonKho)
+        {
+            ShowError($"Chỉ còn {tonKho} sản phẩm trong kho.");
+            return;
+        }
+
+        if (gioHangItem != null)
+        {
+            gioHangItem.SoLuong = soLuongMoi;
+
+            if (gioHangItem.SoLuong <= 0)
+            {
+                DbContext.GioHangs.Remove(gioHangItem);
+            }
+
+            await DbContext.SaveChangesAsync();
+            await LoadGioHangTuDb(nguoiDung.MaNguoiDung);
+        }
+    } *@
+
+    private async Task XoaSanPham(int maSanPham)
+    {
+        var itemToRemove = gioHang.FirstOrDefault(x => x.MaSanPham == maSanPham);
+        if (itemToRemove != null)
+        {
+            gioHang.Remove(itemToRemove);
+
+            if (maNguoiDung != null)
+            {
+                var gioHangDbItem = await DbContext.GioHangs
+                    .FirstOrDefaultAsync(g => g.MaNguoiDung == maNguoiDung && g.MaSanPham == maSanPham);
+
+                if (gioHangDbItem != null)
+                {
+                    DbContext.GioHangs.Remove(gioHangDbItem);
+                    await DbContext.SaveChangesAsync();
+                }
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task ThanhToan()
+    {
+        var selectedItems = gioHang.Where(item => item.Chon == true).ToList();
+        if (selectedItems.Any())
+        {
+            // Cập nhật trạng thái "Chon" trong DB
+            foreach (var item in gioHang)
+            {
+                var gioHangDbItem = await DbContext.GioHangs
+                    .FirstOrDefaultAsync(g => g.MaNguoiDung == maNguoiDung && g.MaSanPham == item.MaSanPham);
+                if (gioHangDbItem != null)
+                {
+                    gioHangDbItem.Chon = item.Chon ?? false;
+                }
+            }
+            await DbContext.SaveChangesAsync();
+
+            NavigationManager.NavigateTo("/dathang");
+        }
+        else
+        {
+            ShowError("Vui lòng chọn sản phẩm để thanh toán.");
+        }
+    }
+    private void OnChonTatCaChanged(ChangeEventArgs e)
+    {
+        bool isChecked = (bool)e.Value!;
+        foreach (var item in gioHang)
+        {
+            item.Chon = isChecked;
+        }
+        StateHasChanged();
+    }
+    private async Task CheckboxChanged(int maSanPham)
+    {
+        await LuuGioHangVaoDb();
+
+        bool anySelected = gioHang.Any(item => item.Chon == true);
+        StateHasChanged(); 
+    }
+        private async Task CheckboxChanged1(int maSanPham, bool isChecked)
+    {
+        if (maNguoiDung == null) return;
+
+        // Tìm mục GioHang tương ứng trong database
+        var gioHangDbItem = await DbContext.GioHangs
+            .FirstOrDefaultAsync(g => g.MaNguoiDung == maNguoiDung && g.MaSanPham == maSanPham);
+
+        if (gioHangDbItem != null)
+        {
+            // Cập nhật thuộc tính Chon
+            gioHangDbItem.Chon = isChecked; // Gán giá trị của checkbox cho thuộc tính Chon trong database
+            DbContext.GioHangs.Update(gioHangDbItem);
+            await DbContext.SaveChangesAsync();
+
+            // Cập nhật lại danh sách gioHang (nếu cần) để đảm bảo đồng bộ UI
+            await LoadGioHangTuDb(maNguoiDung.Value);
+            StateHasChanged();
+        }
+    }
+    public class GioHangItem
+    {
+        public int MaSanPham { get; set; }
+        public string? TenSanPham { get; set; }
+        public string? MoTa { get; set; }
+        public float? Gia { get; set; }
+        public string? AnhSanPham { get; set; }
+        public int? SoLuong { get; set; }
+        public bool? Chon { get; set; } = false;
+    }
+
+}

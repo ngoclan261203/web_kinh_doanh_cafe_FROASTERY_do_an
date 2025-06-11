@@ -1,0 +1,227 @@
+@page "/lien-he-danh-gia"
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Services
+@inject DanhGiaService DanhGiaService
+
+<PageTitle>Liên hệ & Đánh giá</PageTitle>
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="mb-5">
+                <h3>Thông tin liên hệ</h3>
+                    <br>Địa chỉ: <strong>5/16 Phụng Pháp, Đằng Giang, Ngô Quyền, Hải Phòng, Việt Nam</strong><br />
+                   <br> Điện thoại: <strong>(+84) 904 250 251</strong><br />
+                    <br>FanPage: <strong>[Foastery]</strong>
+            </div>
+            <hr class="my-3" />
+            <div class="mb-5">
+                @* <h3>Tổng Quan</h3>
+                @if (averageRating > 0 && reviewCount > 0)
+                {
+                    <p>
+                    <span class="star-display">
+                    @for (int i = 1; i <= 5; i++)
+                    {
+                        <span class="@(i <= averageRating ? "filled" : "")">★</span>
+                    }
+                     </span>
+                     <strong>@(averageRating.ToString("0.0"))/5</strong> (@reviewCount đánh giá)
+                    </p>
+                }
+                else
+                {
+                    <p>Chưa có đánh giá nào.</p>
+                 } *@
+            <div class="mb-2">
+             @* @if (ratingDistribution != null)
+            {
+                <div class="d-flex align-items-center">
+                @for (int i = 5; i >= 1; i--)
+                {
+                    <div class="d-flex align-items-center me-2">
+                    <span class="star-display">
+                @for (int j = 1; j <= i; j++)
+                 {
+                    <span>★</span>
+                 }
+                </span>
+                <div class="progress ms-1" style="height: 8px; width: 100px;">
+                    <div class="progress-bar bg-warning" role="progressbar"
+                            style="width: @(ratingDistribution.ContainsKey(i) && reviewCount > 0 ? (double)ratingDistribution[i] / reviewCount * 100 : 0)%;"
+                            aria-valuenow="@(ratingDistribution.ContainsKey(i) ? ratingDistribution[i] : 0)"
+
+                            aria-valuemin="0" aria-valuemax="@reviewCount"></div>
+                    </div>
+                    <span class="ms-1">(@(ratingDistribution.ContainsKey(i) ? ratingDistribution[i] : 0))</span>
+                </div>
+            } *@
+                @* </div> *@
+            @* } *@
+                </div>
+                <hr class="my-3" />
+                <h3>Chia sẻ trải nghiệm của bạn với chúng tôi</h3>
+                <EditForm Model="@newDanhGia" OnValidSubmit="HandleSubmitDanhGia" FormName="StarRatingForm">
+                    <div class="form-group">
+                        <label for="NoiDung"  class="required-field">Nội dung đánh giá:</label>
+                        <InputTextArea id="NoiDung" class="form-control" @bind-Value="newDanhGia.NoiDung" />
+                        <ValidationMessage For="@(() => newDanhGia.NoiDung)" />
+                    </div>
+                    <div class="form-group">
+                        <label for="HoTen"  class="required-field">Họ và tên:</label>
+                        <InputText id="HoTen" class="form-control" @bind-Value="newDanhGia.HoTen" />
+                        <ValidationMessage For="@(() => newDanhGia.HoTen)" />
+                    </div>
+                    <div class="form-group">
+                        <label for="ThongTinLienLac"  class="required-field">Email/Số điện thoại:</label>
+                        <InputText id="ThongTinLienLac" class="form-control" @bind-Value="newDanhGia.ThongTinLienLac" />
+                        <ValidationMessage For="@(() => newDanhGia.ThongTinLienLac)" />
+                    </div>
+                    <div class="form-group">
+                        @* <label>Đánh giá sao: </label>
+                <form @formname="StarRatingForm">
+                    <div class="star-rating">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <span class="star @(i <= SoSao ? "selected" : "")" @onclick="@(() => SetRating(i))">
+                                ★
+                            </span>
+                        }
+                    </div>
+                </form> *@
+                <div class="form-group">
+                    <label for="GhiChu">Ghi chú thêm:</label>
+                    <InputTextArea id="GhiChu" class="form-control" @bind-Value="newDanhGia.GhiChu" />
+                </div>
+
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-3">Gửi đánh giá</button>
+
+                    @if (submissionSuccessful)
+                    {
+                        <div class="alert alert-success mt-3">
+                            Cảm ơn bạn đã gửi đánh giá!
+                        </div>
+                    }
+                    @if (submissionFailed)
+                    {
+                        <div class="alert alert-danger mt-3">
+                            Đã có lỗi xảy ra khi gửi đánh giá. Vui lòng thử lại sau.
+                        </div>
+                    }
+                </EditForm>
+            </div>
+
+            <div class="mb-5">
+                <h3>Khách hàng nói gì về chúng tôi</h3>
+                @if (recentReviews != null && recentReviews.Any())
+                {
+                    @foreach (var review in recentReviews)
+                    {
+                        <div class="card mb-2 shadow-sm">
+                            <div class="card-body">
+                                <p class="card-text">"@review.NoiDung"</p>
+                                <h6 class="card-subtitle text-muted">
+                                    - @review.HoTen (@review.ThoiGianGui.ToString("dd/MM/yyyy"))
+                                </h6>
+                            </div>
+                        </div>
+                    }
+                    <a href="/tat-ca-danh-gia" class="btn btn-outline-secondary btn-sm">Xem tất cả đánh giá</a>
+                }
+                else
+                {
+                    <p>Chưa có đánh giá nào.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+<Footer />
+<style>
+    .required-field::after {
+    content: " *";
+    color: red;
+    }
+    .star-display span {
+     color: #ffcc00;
+     font-size: 1.2rem;
+    margin-right: 0.1em;
+     }
+    .star-rating {
+        font-size: 2em;
+        user-select: none;
+        
+    }
+
+    .star-rating .star {
+        color: #ccc;
+        cursor: pointer;
+        transition: color 0.3s;
+    }
+
+    .star-rating .star.selected {
+        color: #ffcc00;
+    }
+</style>
+
+@code {
+    private DanhGia newDanhGia = new();
+    private bool submissionSuccessful = false;
+    private bool submissionFailed = false;
+    private List<DanhGia> recentReviews = new();
+    private double averageRating = 0;
+    private int reviewCount = 0;
+    private Dictionary<int, int> ratingDistribution = new();
+    private int SoSao; 
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDanhGiaData();
+    }
+
+    private async Task HandleSubmitDanhGia()
+    {
+        submissionSuccessful = false;
+        submissionFailed = false;
+
+        try
+        {
+            newDanhGia.ThoiGianGui = DateTime.Now;
+            newDanhGia.TrangThai = 0;
+            newDanhGia.SoSao = SoSao;
+            await DanhGiaService.LuuDanhGia(newDanhGia);
+            submissionSuccessful = true;
+
+
+            newDanhGia = new DanhGia();
+            SoSao = 0;
+
+            await LoadDanhGiaData();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Lỗi khi gửi đánh giá: {ex.Message}");
+            submissionFailed = true;
+        }
+    }
+
+    private async Task LoadDanhGiaData()
+    {
+        recentReviews = await DanhGiaService.LayDanhSachDanhGiaDaDuyet(3);
+        averageRating = await DanhGiaService.TinhDiemTrungBinhDanhGiaDaDuyet();
+        reviewCount = await DanhGiaService.DemSoLuongDanhGiaDaDuyet();
+        ratingDistribution = await DanhGiaService.ThongKeDanhGiaTheoSaoDaDuyet();
+    }
+    private void SetRating(int rating)
+    {
+        SoSao = rating; // Cập nhật số sao
+        StateHasChanged();
+    }
+}
+ 
+}

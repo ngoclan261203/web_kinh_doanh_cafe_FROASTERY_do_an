@@ -1,0 +1,78 @@
+@page "/top-slider"
+@implements IDisposable
+@rendermode InteractiveServer
+<div class="carousel-container">
+    <div class="carousel-slide" style="transform: translateX(-@((currentImageIndex * 100))%);">
+        @foreach (var imagePath in slideImages)
+        {
+            <img src="@imagePath" alt="Quảng cáo" class="carousel-image">
+        }
+    </div>
+</div>
+
+<style>
+ 
+    .carousel-container {
+        width: 100%; 
+        margin: 0 auto 20px;
+        overflow: hidden;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        height: 600px; 
+        padding-top:10px ;
+    }
+
+    .carousel-slide {
+        display: flex;
+        transition: transform 0.8s ease-in-out;
+    }
+
+    .carousel-image {
+        min-width: 100%;
+        height: 100%;
+        object-fit: contain; 
+    }
+</style>
+
+@code {
+    private int currentImageIndex = 0;
+    private List<string> slideImages = new()
+    {
+        "./uploads/slider1.jpg",
+        "./uploads/slider2.jpg",
+        "./uploads/slider3.png"
+    };
+
+    private CancellationTokenSource? cts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        cts = new CancellationTokenSource();
+        _ = StartSliderAsync(cts.Token);
+        await Task.Yield();
+    }
+
+    private async Task StartSliderAsync(CancellationToken token)
+    {
+        var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+
+        try
+        {
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                currentImageIndex = (currentImageIndex + 1) % slideImages.Count;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Bị hủy khi component bị dispose
+        }
+    }
+
+    public void Dispose()
+    {
+        cts?.Cancel();
+        cts?.Dispose();
+    }
+}

@@ -1,0 +1,277 @@
+is_global = true
+build_property.TargetFramework = net9.0
+build_property.TargetFramework = net9.0
+build_property.TargetPlatformMinVersion = 
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = FROASTERY
+build_property.RootNamespace = FROASTERY
+build_property.ProjectDir = E:\do_an\FROASTERY\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.RazorLangVersion = 9.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = E:\do_an\FROASTERY
+build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 9.0
+build_property.EnableCodeStyleSeverity = 
+
+[E:/do_an/FROASTERY/Components/App.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xBcHAucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Layout/Footer.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcRm9vdGVyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Layout/Header.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcSGVhZGVyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/DieuKien_SuKien.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxEaWV1S2llbl9TdUtpZW4ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/Home_admin.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxIb21lX2FkbWluLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/QL_CheBien.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxRTF9DaGVCaWVuLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/QL_CongThuc.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxRTF9Db25nVGh1Yy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/QL_DanhGia.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxRTF9EYW5oR2lhLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/QL_DoiTac_CongNo.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxRTF9Eb2lUYWNfQ29uZ05vLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/QL_DonHang.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxRTF9Eb25IYW5nLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/QL_LoaiSanPham.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxRTF9Mb2FpU2FuUGhhbS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/QL_LoaiTin.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxRTF9Mb2FpVGluLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/QL_NguoiDung.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxRTF9OZ3VvaUR1bmcucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/QL_NguyenLieu.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxRTF9OZ3V5ZW5MaWV1LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/QL_PhanQuyen.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxRTF9QaGFuUXV5ZW4ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/QL_PhieuChi.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxRTF9QaGlldUNoaS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/QL_PhieuNhapNguyenLieu.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxRTF9QaGlldU5oYXBOZ3V5ZW5MaWV1LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/QL_PhieuThu.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxRTF9QaGlldVRodS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/QL_Quyen.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxRTF9RdXllbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/QL_SanPham.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxRTF9TYW5QaGFtLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/QL_SuKien.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxRTF9TdUtpZW4ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/QL_TinTuc.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxRTF9UaW5UdWMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/Test.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxUZXN0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/ThongKeCongNo.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxUaG9uZ0tlQ29uZ05vLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/TK_BanChay.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxUS19CYW5DaGF5LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/TK_DoanhThu.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxUS19Eb2FuaFRodS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Admin/TK_SP_CB.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblxUS19TUF9DQi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Error.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xFcnJvci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Login/AccountUpdate.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2dpblxBY2NvdW50VXBkYXRlLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Login/ForgotPassword.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2dpblxGb3Jnb3RQYXNzd29yZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Login/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2dpblxMb2dpbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Login/Logout.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2dpblxMb2dvdXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Login/Register.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2dpblxSZWdpc3Rlci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Login/ResetPassword.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2dpblxSZXNldFBhc3N3b3JkLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/Chitiet_SanPham.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXENoaXRpZXRfU2FuUGhhbS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/Chitiet_TinTuc.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXENoaXRpZXRfVGluVHVjLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/DatHang.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXERhdEhhbmcucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/DatHang_SP.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXERhdEhhbmdfU1AucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/DS_DanhGia.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXERTX0RhbmhHaWEucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/Giohang.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXEdpb2hhbmcucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/LichSuDonHang.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXExpY2hTdURvbkhhbmcucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/LienHe_DanhGia.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXExpZW5IZV9EYW5oR2lhLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/QB_SanPham.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXFFCX1NhblBoYW0ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/QB_SuKien.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXFFCX1N1S2llbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/QB_TinTuc.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXFFCX1RpblR1Yy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/QB_TongQuan/CoffeeRoad.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXFFCX1RvbmdRdWFuXENvZmZlZVJvYWQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/QB_TongQuan/CoffeeRoadNavigation.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXFFCX1RvbmdRdWFuXENvZmZlZVJvYWROYXZpZ2F0aW9uLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/QB_TongQuan/DashboardFeature.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXFFCX1RvbmdRdWFuXERhc2hib2FyZEZlYXR1cmUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/QB_TongQuan/Events.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXFFCX1RvbmdRdWFuXEV2ZW50cy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/QB_TongQuan/Home.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXFFCX1RvbmdRdWFuXEhvbWUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/QB_TongQuan/Signature.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXFFCX1RvbmdRdWFuXFNpZ25hdHVyZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/User/QB_TongQuan/TopSlider.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc2VyXFFCX1RvbmdRdWFuXFRvcFNsaWRlci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Pages/Weather.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xXZWF0aGVyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Routes.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xSb3V0ZXMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Shared/ErrorDisplay.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xTaGFyZWRcRXJyb3JEaXNwbGF5LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Shared/ThongBao.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xTaGFyZWRcVGhvbmdCYW8ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xfSW1wb3J0cy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/do_an/FROASTERY/Components/Layout/AdminLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcQWRtaW5MYXlvdXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-f8innsu3hi
+
+[E:/do_an/FROASTERY/Components/Layout/LoginLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcTG9naW5MYXlvdXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-scw14as8v6
+
+[E:/do_an/FROASTERY/Components/Layout/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcTWFpbkxheW91dC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-01wdy8uawi
+
+[E:/do_an/FROASTERY/Components/Layout/NavMenu.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcTmF2TWVudS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-53j307i85b
+
+[E:/do_an/FROASTERY/Components/Layout/UserLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcVXNlckxheW91dC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-eohg1h1xf3

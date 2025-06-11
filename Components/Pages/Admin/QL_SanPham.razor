@@ -1,0 +1,493 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FROASTERY.Services;
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+@code {
+    private ClaimsPrincipal? _currentUser;
+
+    // Thay đổi từ OnInitializedAsync sang OnAfterRenderAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Lấy trạng thái xác thực của người dùng
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                // In thông tin người dùng và trạng thái xác thực
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                Console.WriteLine("UserId: " + _currentUser?.FindFirst("UserId")?.Value); // In mã người dùng
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("User not authenticated.");
+                    // Chuyển hướng người dùng đến trang đăng nhập nếu chưa xác thực
+                    Navigation.NavigateTo("/dangnhap", true);
+                    return;
+                }
+
+                // Kiểm tra quyền Admin
+                if (!_currentUser.IsInRole("Admin") &&
+                    !_currentUser.IsInRole("Marketing") &&
+                    !_currentUser.IsInRole("CSKH") &&
+                    !_currentUser.IsInRole("Kinh doanh"))
+                {
+                    Console.WriteLine("User does not have Admin role. Redirecting to /home.");
+                    // Chuyển hướng người dùng không phải Admin về trang chủ
+                    Navigation.NavigateTo("/home_admin", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+    }
+}
+
+
+
+@page "/quan-ly-san-pham"
+@using Microsoft.EntityFrameworkCore
+@using System.IO
+@inject IWebHostEnvironment Environment
+@inject AppDbContext DbContext
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+
+@using FROASTERY.Components.Shared
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+
+<PageTitle>Quản lý Sản Phẩm</PageTitle>
+
+<ErrorDisplay ErrorMessage="@DbErrorMessage" OnClear="ClearErrorMessage" />
+
+<style>
+    .description {
+        max-height: 100px; /* Giới hạn chiều cao của mô tả */
+        overflow: hidden; /* Ẩn phần nội dung vượt quá */
+        transition: max-height 0.3s ease-out;
+    }
+
+    .expanded {
+        max-height: none; /* Hiển thị toàn bộ khi mở rộng */
+    }
+
+    .product-img {
+        max-width: 150px;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    .form-img {
+        max-width: 200px;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+</style>
+
+<div class="container mt-4">
+    <h3 class="text-center">Quản lý Sản Phẩm</h3>
+    <h5>@(Editing ? "Chỉnh sửa" : "Thêm mới") Sản Phẩm</h5>
+
+    <EditForm Model="SanPham" OnValidSubmit="Save" class="border p-4 rounded shadow bg-light mb-4">
+        <DataAnnotationsValidator />
+    <!-- Phần trên: Chia thành 3 phần -->
+    <div class="row mb-3">
+        <!-- Cột bên trái -->
+        <div class="col-md-4">
+            <label>Mã sản phẩm:</label>
+            <input type="text" @bind="SanPham.MaSanPham" class="form-control mb-2" readonly />
+            <label>Tên sản phẩm:</label>
+            <div class="position-relative mb-2 validation-wrapper">
+                    <input type="text" @bind="SanPham.TenSanPham" class="form-control mb-2" />
+                    <ValidationMessage For="@(() => SanPham.TenSanPham)" />
+            </div>
+    
+            <label>Loại sản phẩm:</label>
+            <select @bind="SanPham.MaLoaiSP" class="form-control mb-2">
+                <option value="0">-- Chọn Loại Sản phẩm --</option>
+                @foreach (var loai in LoaiSanPhams)
+                {
+                    <option value="@loai.MaLoaiSP">@loai.TenLoaiSP</option>
+                }
+            </select>
+            <label>Số lượng:</label>
+            <div class="position-relative mb-2 validation-wrapper">
+                    <input type="number" @bind="SanPham.SoLuong" class="form-control mb-2" readonly />
+                    <ValidationMessage For="@(() => SanPham.SoLuong)" />
+            </div>
+            
+            <label>Giá:</label>
+            <input type="number" @bind="SanPham.Gia" class="form-control mb-2" />
+        </div>
+
+        <!-- Cột giữa: Chọn ảnh căn trái, hiển thị ảnh căn giữa -->
+        <div class="col-md-4 d-flex flex-column align-items-start">
+            <label >Chọn ảnh:</label>
+            <InputFile OnChange="UploadImage" class="form-control mb-2" accept="image/*" />
+            <div class="w-100 d-flex justify-content-center mt-4">
+                @if (!string.IsNullOrEmpty(TempImagePath))
+                {
+                    <img src="@TempImagePath" alt="Ảnh sản phẩm" title="Ảnh sản phẩm" class="form-img mb-2" />
+                }
+                else
+                {
+                    <span class="text-muted">Chưa có ảnh</span>
+                }
+            </div>
+        </div>
+
+         <!-- Cột bên phải -->
+        <div class="col-md-4">
+            <label>Mô tả:</label>
+            <div class="position-relative mb-2 validation-wrapper">
+                    <textarea @bind="SanPham.MoTa" class="form-control mb-2" ></textarea>
+                    <ValidationMessage For="@(() =>SanPham.MoTa)" />
+            </div>
+            
+            <label>Chi tiết:</label>
+            <textarea @bind="SanPham.ChiTiet" class="form-control mb-2" style="width: 100%; height: 226px;"></textarea>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-center gap-3 mt-2">
+            <button type="submit" class="btn btn-save">Lưu</button>
+            <button type="button" class="btn btn-cancel"  @onclick="Cancel">Hủy</button>
+    </div>
+ </EditForm>
+
+ <!-- Thêm ô nhập tìm kiếm và nút tìm kiếm -->
+    <div class="d-flex justify-content-center mb-4">
+        <input type="text" @bind="SearchQuery" class="form-control w-50" placeholder="Tìm kiếm theo mã sản phẩm, tên sản phẩm, hoặc mô tả..." />
+        <button @onclick="Search" class="btn btn-success ms-2">Tìm kiếm</button>
+    </div>
+
+
+<div class="table-responsive">
+     <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th style ="width: 50px">Mã</th>
+                <th >Tên Sản Phẩm</th>
+                <th>Loại SP</th>
+                <th style ="width: 80px">Giá</th>
+                <th style ="width: 70px">Số Lượng</th>
+                <th>Mô Tả</th>
+                <th >Chi Tiết</th>
+                <th>Ảnh</th>
+                <th style ="width: 128px">Hành Động</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var sp in SanPhams)
+            {
+                <tr>
+                    <td>@sp.MaSanPham</td>
+                    <td>@sp.TenSanPham</td>
+                    <td>@sp.LoaiSanPham?.TenLoaiSP</td>
+                    <td>@(sp.Gia.HasValue ? sp.Gia.Value.ToString("N0" ) + " VNĐ" : "Chưa có")</td>
+                    <td>@(sp.SoLuong.HasValue ? sp.SoLuong.Value : 0)</td>
+                    <td>@sp.MoTa</td>
+                    <td>
+                        <div class="description @(detailExpandedClass.ContainsKey(sp.MaSanPham) && detailExpandedClass[sp.MaSanPham] ? "expanded" : "")">
+                            @((MarkupString)(sp.ChiTiet != null ? sp.ChiTiet.Replace("\r\n", "<br/>").Replace("\n", "<br/>") : "")) 
+                        </div>
+                        @if (!string.IsNullOrEmpty(sp.ChiTiet) && sp.ChiTiet.Length > 100) // Chỉ hiển thị nút nếu độ dài > 100 ký tự
+                        {
+                            <button class="btn btn-link p-0 shadow-none fst-italic small" @onclick="() => ToggleDetail(sp.MaSanPham)">
+                                @(detailExpandedClass.ContainsKey(sp.MaSanPham) && detailExpandedClass[sp.MaSanPham] ? "Ẩn bớt" : "Xem thêm")
+                            </button>
+                        }
+                    </td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(sp.Anh))
+                        {
+                            <img src="@sp.Anh" alt="Ảnh SP" title="@sp.TenSanPham" class="product-img" />
+                        }
+                        else
+                        {
+                            <span>Không có ảnh</span>
+                        }
+                    </td>
+                    <td>
+                        <button @onclick="() => Edit(sp)" class="btn btn-warning mb-1">Sửa</button>
+                        <button @onclick="() => Delete(sp.MaSanPham)" class="btn btn-danger">Xóa</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+</div>
+
+
+
+@code {
+    private List<SanPham> SanPhams = new();
+    private List<SanPham> FullSanPhams = new(); // Lưu danh sách đầy đủ
+    private List<LoaiSanPham> LoaiSanPhams = new();
+    private SanPham SanPham = new();
+    private bool Editing = false;
+    private string SearchQuery = string.Empty; // Biến lưu truy vấn tìm kiếm
+
+    // Phương thức tìm kiếm sản phẩm
+    private void Search()
+    {
+        var trimmedQuery = SearchQuery?.Trim(); // Loại bỏ dấu cách đầu/cuối
+
+        if (string.IsNullOrEmpty(trimmedQuery))
+        {
+            SanPhams = new List<SanPham>(FullSanPhams);
+        }
+        else
+        {
+            // Nếu có từ khóa tìm kiếm, lọc theo từ khóa
+            SanPhams = FullSanPhams.Where(item =>
+            (item.MaSanPham.ToString().Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) == true) || // Tìm kiếm theo mã sản phẩm
+            (item.TenSanPham.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) == true) || // Tìm kiếm theo tên sản phẩm
+            (item.MoTa?.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) == true) // Tìm kiếm theo mô tả sản phẩm
+        ).ToList();
+        }
+         SanPhams.Reverse(); // đảo ngay sau khi load
+    }
+
+    // Phương thức khởi tạo dữ liệu
+    protected override async Task OnInitializedAsync()
+    {
+        // Load danh sách sản phẩm và loại sản phẩm
+        FullSanPhams = await DbContext.SanPhams
+            .Include(sp => sp.LoaiSanPham)
+            .Where(p => !p.DaXoa) // Load thêm thông tin loại sản phẩm
+            .AsNoTracking() // Tránh theo dõi dữ liệu không cần thiết
+            .ToListAsync();
+
+        LoaiSanPhams = await DbContext.LoaiSanPhams.AsNoTracking().Where(p => !p.DaXoa).ToListAsync();
+        SanPhams = new List<SanPham>(FullSanPhams);
+        SanPhams.Reverse(); // đảo ngay sau khi load
+    }
+
+
+
+    private void Edit(SanPham sp)
+    {
+        SanPham = new SanPham
+        {
+            MaSanPham = sp.MaSanPham,
+            TenSanPham = sp.TenSanPham,
+            MoTa = sp.MoTa,
+            ChiTiet = sp.ChiTiet,
+            Anh = sp.Anh,
+            SoLuong = sp.SoLuong,
+            Gia=sp.Gia,
+            MaLoaiSP = sp.MaLoaiSP
+    
+        };
+        TempImagePath = sp.Anh;
+        UploadedFile = null;
+        Editing = true;
+    }
+
+    private async Task Save()
+    {
+        DbErrorMessage = null;
+        if (SanPham.MaLoaiSP == 0)
+        {
+            DbErrorMessage = "Vui lòng chọn loại sản phẩm.";
+            return ;
+        } 
+         //kiểm tra trùng lặp tên
+        var isDuplicate = await DbContext.SanPhams
+                .AnyAsync(x => x.TenSanPham == SanPham.TenSanPham.Trim() && x.MaSanPham != SanPham.MaSanPham);
+
+            if (isDuplicate)
+            {
+                DbErrorMessage = "Tên sản phẩm đã tồn tại.";
+                return;
+            }
+
+        string? oldImagePath = Editing ? SanPham.Anh : null;
+
+        if (UploadedFile != null)
+        {
+            var uploadsFolder = Path.Combine(Environment.WebRootPath, "uploads");
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+            }
+
+            // Tạo tên file mới
+            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(UploadedFile.Name)}";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            await using var stream = new FileStream(filePath, FileMode.Create);
+            await UploadedFile.OpenReadStream().CopyToAsync(stream);
+
+            // Cập nhật đường dẫn ảnh mới
+            SanPham.Anh = $"/uploads/{fileName}";
+        }
+
+        if (Editing)
+        {
+            var entity = await DbContext.SanPhams
+                .FirstOrDefaultAsync(sp => sp.MaSanPham == SanPham.MaSanPham);
+            if (entity != null)
+            {
+                entity.TenSanPham = SanPham.TenSanPham;
+                entity.MoTa = SanPham.MoTa;
+                entity.ChiTiet = SanPham.ChiTiet;
+                entity.Anh = SanPham.Anh;
+                entity.SoLuong = SanPham.SoLuong;
+                entity.Gia = SanPham.Gia;
+                entity.MaLoaiSP = SanPham.MaLoaiSP;
+            }
+        }
+        else
+        {
+            try
+            {
+                 DbContext.SanPhams.Add(SanPham);
+            }
+            catch (Exception ex)
+            {
+                DbErrorMessage = "Lưu dữ liệu thất bại: " + ex.Message;
+                return;
+            }    
+        }
+
+        await DbContext.SaveChangesAsync();
+
+         if (!string.IsNullOrEmpty(oldImagePath) && oldImagePath != SanPham.Anh)
+        {
+             DeleteImageFile(oldImagePath);//hàm xóa ảnh trên server
+        }
+
+        await OnInitializedAsync();
+       Cancel();
+    }
+
+    private async Task Delete(int id)
+    {
+        var entity = await DbContext.SanPhams.FindAsync(id);
+        if (entity != null)
+        {
+            entity.DaXoa = true;
+            await DbContext.SaveChangesAsync();
+
+            // Reload danh sách những loại chưa bị xóa
+           await OnInitializedAsync();
+        }
+    }
+    @* private async Task Delete(int id)
+    {
+        var entity = await DbContext.SanPhams.FindAsync(id);
+        if (entity != null)
+        {
+            if (!string.IsNullOrEmpty(entity.Anh))
+            {
+                DeleteImageFile(entity.Anh);//hàm xóa ảnh trên server
+            }
+            DbContext.SanPhams.Remove(entity);
+            await DbContext.SaveChangesAsync();
+            SanPhams = await DbContext.SanPhams.Include(sp => sp.LoaiSanPham).AsNoTracking().ToListAsync();
+        }
+    } *@
+
+    private void Cancel()
+    {
+        SanPham = new SanPham() ;
+        TempImagePath = null;
+        UploadedFile = null;
+        Editing = false;
+        DbErrorMessage = null;
+    }
+
+
+
+
+///===============Phần xử lý ảnh===============
+    private string? TempImagePath ;
+    private IBrowserFile? UploadedFile;
+    private async Task UploadImage(InputFileChangeEventArgs e)
+    {
+        UploadedFile = e.File;
+        if (UploadedFile != null)
+        {
+            var fileType = UploadedFile.ContentType; // Lấy kiểu file
+            using var memoryStream = new MemoryStream();
+            await UploadedFile.OpenReadStream().CopyToAsync(memoryStream);
+
+            // Chuyển ảnh sang Base64 ngay khi đọc
+            TempImagePath = $"data:{fileType};base64,{Convert.ToBase64String(memoryStream.ToArray())}";
+        }
+    }
+
+    private void DeleteImageFile(string? imagePath)
+    {
+        if (!string.IsNullOrEmpty(imagePath))
+        {
+            var fullPath = Path.Combine(Environment.WebRootPath, imagePath.TrimStart('/'));
+            if (System.IO.File.Exists(fullPath))
+            {
+                try
+                {
+                    System.IO.File.Delete(fullPath);
+                }
+                catch (Exception ex)
+                {  
+                DbErrorMessage = $"Lỗi xóa file: {ex.Message}";
+                }
+            }
+        }
+    }
+
+
+    //================code bắt lỗi =============
+    private string? DbErrorMessage;
+    private void ClearErrorMessage()
+    {
+        DbErrorMessage = null;
+    }
+
+
+    // =====code xử lý mở rộng mô tả và chi tiết=====
+    private Dictionary<int, bool> descriptionExpandedClass = new();
+    private Dictionary<int, bool> detailExpandedClass = new();
+
+    private void ToggleDescription(int productId)
+    {
+        if (descriptionExpandedClass.ContainsKey(productId))
+        {
+            descriptionExpandedClass[productId] = !descriptionExpandedClass[productId];
+        }
+        else
+        {
+            descriptionExpandedClass[productId] = true;
+        }
+    }
+
+    private void ToggleDetail(int productId)
+    {
+        if (detailExpandedClass.ContainsKey(productId))
+        {
+            detailExpandedClass[productId] = !detailExpandedClass[productId];
+        }
+        else
+        {
+            detailExpandedClass[productId] = true;
+        }
+    }
+}

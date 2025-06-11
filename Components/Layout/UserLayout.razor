@@ -1,0 +1,328 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Routing
+
+<style>
+    a.custom-brand-link {
+        text-decoration: none !important;
+        color: inherit;
+        display: inline-block;
+    }
+
+    a.custom-brand-link:hover {
+        text-decoration: none !important;
+        color: inherit;
+    }
+
+    /* Nếu vẫn không được, thêm cả phần span để chắc chắn */
+    a.custom-brand-link .custom-text {
+        text-decoration: none !important;
+    }
+
+
+
+    .top-row {
+    height: 3.5rem;
+    background-color: #fff;
+    border-bottom: 1px solid #ddd;
+}
+
+.custom-logo {
+    height: 40px;
+    border-radius: 5px;
+}
+
+.custom-text {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.user-menu li {
+    display: inline-block;
+}
+
+.user-menu li a {
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+}
+
+.user-menu li a:hover {
+    color: #000;
+    text-decoration: underline;
+}
+
+.btn-link {
+    text-decoration: none;
+    color: #333;
+    margin-left: 0.75rem;
+    font-weight: 500;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+}
+
+.dropdown-toggle::after {
+    display: none; /* Ẩn mũi tên mặc định */
+}
+
+.dropdown-menu {
+    background-color:#06622f !important; /* Xanh Bootstrap hoặc thay mã màu bạn muốn */
+    color: white; /* Màu chữ trắng cho dễ đọc */
+}
+
+.dropdown-menu .dropdown-item {
+    color: white; /* Đảm bảo màu chữ của item cũng trắng */
+}
+
+.dropdown-menu .dropdown-item:hover {
+    background-color: #0056b3; /* Màu xanh đậm hơn khi hover */
+    color: #fff;
+}
+
+.user-menu li a.active-nav {
+    color: rgb(193, 180, 81); 
+
+    text-decoration: none;
+}
+.user-menu li a:hover {
+    text-decoration: underline;
+    color: rgb(193, 180, 81); 
+    background-color: transparent; 
+}
+.user-menu {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    padding: 0;
+    margin: 0;
+    height: 100%;
+}
+
+.user-menu li a {
+    
+    text-decoration: none;
+    white-space: nowrap;
+    color: white; 
+    align-items: center;
+    line-height: 2.0;
+    display: flex; 
+    height: 100%;
+    padding: 0 0.5rem; 
+    font-size: 1.1rem; 
+}
+
+</style>
+
+
+
+
+<div class="user-layout">
+    <header class="top-row d-flex align-items-center justify-content-between px-3">
+        <!-- Logo + Tên thương hiệu bên trái -->
+    <div class="navbar-brand custom-brand d-flex align-items-center me-auto">
+        <a href="/" class="custom-brand-link d-flex align-items-center">
+            <img src="/images/logo.png" class="custom-logo" />
+            <span class="custom-text ms-2">F-Roastery</span>
+        </a>
+    </div>
+
+<!-- Menu giữa -->
+    <nav class="main-nav mx-auto">
+        <ul class="user-menu d-flex justify-content-center gap-3 mb-0 list-unstyled">
+            @* <li><a href="/">Trang chủ</a></li>
+            <li><a href="/quangba">Sản phẩm</a></li>
+            <li><a href="/tintuc">Tin tức</a></li>
+            @if (UserSessionService.IsLoggedIn)
+            {
+                <li><a href="/lich-su-don-hang">Lịch sử ĐH</a></li>
+            }
+            <li><a href="/lien-he-danh-gia">Liên hệ</a></li> *@
+
+            <li><a href="/" class="@GetNavLinkClass("/")">Trang chủ</a></li>
+                <li><a href="/quangba" class="@GetNavLinkClass("/quangba")">Sản phẩm</a></li>
+                <li><a href="/tintuc" class="@GetNavLinkClass("/tintuc")">Tin tức</a></li>
+                @if (UserSessionService.IsLoggedIn)
+                {
+                    <li><a href="/lich-su-don-hang" class="@GetNavLinkClass("/lich-su-don-hang")">Lịch sử ĐH</a></li>
+                }
+                <li><a href="/lien-he-danh-gia" class="@GetNavLinkClass("/lien-he-danh-gia")">Liên hệ</a></li>
+        </ul>
+    </nav>
+
+   <div class="d-flex align-items-center ms-auto">
+    @if (UserSessionService.IsLoggedIn)
+    {
+        <!-- Giỏ hàng icon -->
+        <a href="/gio-hang" class="btn btn-link position-relative ms-2" style="overflow: visible;">
+            <i class="bi bi-cart3" style="font-size: 1.25rem;"></i>
+            @if (cartCount > 0)
+            {
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger text-white"
+                    style="min-width: 1.5rem; padding: 0.25em 0.4em; font-size: 0.75rem;">
+                    @cartCount
+                </span>
+            }
+        </a>
+
+        <!-- Dropdown user icon -->
+        <div class="dropdown">
+            <a class="btn btn-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-person-circle" style="font-size: 1.5rem;"></i>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="/capnhattk">Cập nhật</a></li>
+                <li><a class="dropdown-item" href="/logout">Đăng xuất</a></li>
+            </ul>
+        </div>
+
+        
+    }
+    else
+    {
+        <a href="/dangnhap" class="btn btn-link">Đăng nhập</a>
+        <a href="/dangky" class="btn btn-link">Đăng ký</a>
+    }
+</div>
+
+
+</header>
+
+    <main class="user-content px-4">
+        @Body
+    </main>
+</div>
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FROASTERY.Services;
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+@inject NavigationManager NavigationManager
+@inject CartService CartService
+@implements IDisposable
+
+@inject FROASTERY.Services.UserSessionService UserSessionService
+
+@using Radzen
+@using Radzen.Blazor
+
+<script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
+
+@code {
+
+    private string GetNavLinkClass(string href)
+    {
+        var relativePath = "/" + NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+       
+        return string.Equals(relativePath, href, StringComparison.OrdinalIgnoreCase) ? "active-nav" : "";
+    }
+    
+
+    private int cartCount;
+    protected override void OnInitialized()
+    {
+        try
+        {
+            UserSessionService.OnChange += StateHasChanged;
+            Console.WriteLine($"[Layout] UserSessionService hiện tại: IsLoggedIn = {UserSessionService.IsLoggedIn}, TenNguoiDung = {UserSessionService.TenNguoiDung}");
+            cartCount = CartService.CartItemCount;
+            CartService.OnChange += StateChanged;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi đăng ký OnChange: " + ex.Message);
+            // Bạn có thể log hoặc hiển thị thông báo lỗi ở đây
+        }
+    }
+
+private void StateChanged()
+    {
+        Console.WriteLine($"[Layout] Nhận event thay đổi, cập nhật cartCount = {CartService.CartItemCount}");
+        cartCount = CartService.CartItemCount;
+        InvokeAsync(StateHasChanged);
+    }
+    public void Dispose()
+    {
+        try
+        {
+            UserSessionService.OnChange -= StateHasChanged;
+            CartService.OnChange -= StateChanged;
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi hủy đăng ký OnChange: " + ex.Message);
+        }
+    }
+
+    public void SetCount(int count)
+    {
+        Console.WriteLine($"[CartService] SetCount gọi với giá trị: {count}");
+        cartCount = count;
+    }
+}
+
+
+@* @code {
+    private ClaimsPrincipal? _currentUser;
+    private bool isLoggedIn = false;
+    private bool isUser = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Lấy trạng thái xác thực của người dùng
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                // In thông tin người dùng và trạng thái xác thực
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    isLoggedIn = false;
+                   
+                }
+                else{
+                     isLoggedIn = true;
+                }
+
+                if (isLoggedIn == true)
+                {
+                    isUser = _currentUser?.IsInRole("User") == true;
+
+                }
+                StateHasChanged();
+                Console.WriteLine("IisLoggedI: " + isUser);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+    }
+}
+
+} *@

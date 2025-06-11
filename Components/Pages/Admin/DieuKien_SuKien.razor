@@ -1,0 +1,743 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FROASTERY.Services;
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+@code {
+    private ClaimsPrincipal? _currentUser;
+
+    // Thay đổi từ OnInitializedAsync sang OnAfterRenderAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Lấy trạng thái xác thực của người dùng
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                // In thông tin người dùng và trạng thái xác thực
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                Console.WriteLine("UserId: " + _currentUser?.FindFirst("UserId")?.Value); // In mã người dùng
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("User not authenticated.");
+                    // Chuyển hướng người dùng đến trang đăng nhập nếu chưa xác thực
+                    Navigation.NavigateTo("/dangnhap", true);
+                    return;
+                }
+
+                // Kiểm tra quyền Admin
+                if (!_currentUser.IsInRole("Admin") &&
+                    
+                    !_currentUser.IsInRole("Marketing"))
+                {
+                    Console.WriteLine("User does not have Admin role. Redirecting to /home.");
+                    // Chuyển hướng người dùng không phải Admin về trang chủ
+                    Navigation.NavigateTo("/home_admin", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+    }
+}
+
+
+@page "/them-dieu-kien/{MaSuKien:int}"
+
+@using Microsoft.EntityFrameworkCore
+@using System.IO
+@inject IWebHostEnvironment Environment
+@inject AppDbContext DbContext
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+@using FROASTERY.Components
+@inject NavigationManager NavigationManager
+
+@using FROASTERY.Components.Shared
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+<PageTitle >Điều Kiện Khuyến Mại</PageTitle>
+
+<ErrorDisplay ErrorMessage="@DbErrorMessage" OnClear="ClearErrorMessage" />
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Sự Kiện: @SuKien?.TieuDe</h3>
+    <button class="btn btn-secondary btn-sm" @onclick="BackToSuKienPage">
+        <i class="bi bi-arrow-left me-1"></i> Quay lại
+    </button>
+</div>
+    <h5>@(Editing ? "Chỉnh sửa" : "Thêm mới") Điều kiện</h5>
+
+    <EditForm Model="DieuKien" OnValidSubmit="SaveAsync" class="border p-4 rounded shadow bg-light mb-4">
+        <DataAnnotationsValidator />
+        @* <ValidationSummary /> *@
+
+        <input type="hidden" @bind="DieuKien.MaSuKien" />
+
+        <div class="row">
+            <div class="col-md-6">
+                @* <label class="me-2 mb-1">Kiểu Áp Dụng:</label> *@
+
+                <!-- Hàng 1: Radio 'Đơn hàng' bên trái và input Giá Trị Đơn Hàng bên phải -->
+                <div class="d-flex justify-content-between align-items-center mb-2 position-relative validation-wrapper">
+                    <div class="form-check">
+                        <input type="radio" id="DonHang" name="KieuApDung" value="Đơn hàng"
+                            checked="@((DieuKien.KieuApDung == "Đơn hàng"))"
+                            @onchange="OnKieuApDungChanged" class="form-check-input" />
+                        <label for="DonHang" class="form-check-label ms-1 mb-0">Đơn Hàng</label>
+                    </div>
+                    
+                    @* <div class="d-flex align-items-center" style="gap: 8px; min-width: 250px;">
+                        <label mb-0>Giá Trị ĐH:</label>
+                        <input type="number" step="1" class="form-control " style="max-width: 200px;"
+                            @bind="DieuKien.GiaTriDonHang"
+                            disabled="@(DieuKien.KieuApDung != "Đơn hàng")" />
+                    </div>
+                     <ValidationMessage For="@(() => DieuKien.GiaTriDonHang)" /> *@
+                     <div class="d-flex align-items-center" style="gap: 8px; min-width: 250px;">
+                        <label mb-0>Từ:</label>
+                        <input type="number" step="1" class="form-control " style="max-width: 150px;"
+                            @bind="DieuKien.GiaTriDonHangTu"
+                            disabled="@(DieuKien.KieuApDung != "Đơn hàng")" />
+                        <label mb-0>Đến:</label>
+                        <input type="number" step="1" class="form-control " style="max-width: 150px;"
+                            @bind="DieuKien.GiaTriDonHangDen"
+                            disabled="@(DieuKien.KieuApDung != "Đơn hàng")" />
+                    </div>
+                    
+                    <ValidationMessage For="@(() => DieuKien.GiaTriDonHangTu)" />
+                    <ValidationMessage For="@(() => DieuKien.GiaTriDonHangDen)" />
+                    <ValidationMessage For="@(() => DieuKien.GiaTriTuDenValidationDummy)" />
+                </div>
+
+                <!-- Hàng 2: Radio 'Sản phẩm' bên trái và nút Thêm Sản phẩm bên phải -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="form-check">
+                        <input type="radio" id="SanPham" name="KieuApDung" value="Sản phẩm"
+                            checked="@((DieuKien.KieuApDung == "Sản phẩm"))"
+                            @onchange="OnKieuApDungChanged" class="form-check-input" />
+                        <label for="SanPham" class="form-check-label ms-1">Sản Phẩm</label>
+                    </div>
+
+                    <button type="button" @onclick="AddSanPhamApDung" class="btn btn-success btn-sm px-4" disabled="@(DieuKien.KieuApDung != "Sản phẩm")">
+                        Thêm Sản phẩm
+                    </button>
+                  
+                </div>
+                
+                <!-- Table for Sản Phẩm -->
+                <table class="table mt-3 position-relative validation-wrapper ">
+                    @* <ValidationMessage For="@(() => DieuKien.DKSanPhams)" /> *@
+                    <thead>
+                        <tr>
+                            <th>Sản Phẩm</th>
+                            <th style="width: 140px;">Giá bán</th>
+                            <th style="width: 82px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var sp in DanhSachSanPhamApDung)
+                        {
+                            <tr>
+                                <td>
+                                    <select class="form-control" @bind="sp.MaSanPham">
+                                        <option value="">-- Chọn sản phẩm --</option>
+                                        @foreach (var sanpham in DanhSachSanPham)
+                                        {
+                                            <option value="@sanpham.MaSanPham">@sanpham.TenSanPham</option>
+                                        }
+                                    </select>
+                                </td>
+                                <td>
+                                    @{
+                                        var spInfo = DanhSachSanPham.FirstOrDefault(s => s.MaSanPham == sp.MaSanPham);
+                                    }
+                                    @if (spInfo?.Gia != null)
+                                    {
+                                        <span>@spInfo.Gia.Value.ToString("N0") VNĐ</span>
+                                    }
+                                    else
+                                    {
+                                        <span></span>
+                                    }
+
+                                </td>
+
+                                <td>
+                                    <button type="button" class="btn btn-danger" @onclick="() => RemoveSanPhamApDung(sp)">Xóa</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+                    
+             
+            <div class="col-md-6 ">
+                <div class="d-flex justify-content-between align-items-center flex-wrap mb-2  position-relative validation-wrapper">
+                    <label class="me-2 mb-0">Giá Trị Giảm:</label>
+                    <input type="number" step="1" class="form-control me-3" style="width: 200px;"
+                        @bind="DieuKien.GiaTriGiam"
+                        @oninput="OnGiaTriGiamChanged" />
+
+                    <label class="me-3 mb-0">Kiểu Giảm:</label>
+
+                    <div class="form-check form-check-inline">
+                        <input type="radio" id="Percent" name="KieuGiam" value="%"
+                            checked="@((DieuKien.KieuGiam == "%"))"
+                            @onchange="OnKieuGiamChanged"
+                            disabled="@(string.IsNullOrEmpty(DieuKien.GiaTriGiam?.ToString()))"
+                            class="form-check-input" />
+                        <label for="Percent" class="form-check-label">%</label>
+                    </div>
+
+                    <div class="form-check form-check-inline">
+                        <input type="radio" id="VND" name="KieuGiam" value="VNĐ"
+                            checked="@((DieuKien.KieuGiam == "VNĐ"))"
+                            @onchange="OnKieuGiamChanged"
+                            disabled="@(string.IsNullOrEmpty(DieuKien.GiaTriGiam?.ToString()))"
+                            class="form-check-input" />
+                        <label for="VND" class="form-check-label">VNĐ</label>
+                    </div>
+                    <ValidationMessage For="@(() => DieuKien.GiaTriGiam)" />
+                    <ValidationMessage For="@(() => DieuKien.KieuGiam)" />
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center ">
+                    <label class="d-inline-block mb-0">Quà Tặng</label>
+                    <div class="mt-2 d-flex align-items-center">
+                        <label class="form-label me-2 mb-0">SL yêu cầu</label>
+                        <input type="number"  class="form-control" style="max-width: 100px;" disabled="@(DanhSachQuaTang.Count == 0)"
+  @bind="DieuKien.SoLuongYeuCau" />
+                    </div>
+                    <button type="button" @onclick="AddQuaTang" class="btn btn-success btn-sm px-4">Thêm Quà Tặng</button>
+                </div>
+               
+                
+                
+                <table class="table mt-3">
+                    <thead>
+                        <tr>
+                            <th style="width: 300px">Sản Phẩm Quà Tặng</th>
+                            <th style="width: 180px">Số Lượng</th>
+                            <th ></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var qt in DanhSachQuaTang)
+                        {
+                            <tr>
+                                <td>
+                                    <select class="form-control" @bind="qt.MaSanPham">
+                                        <option value="">-- Chọn sản phẩm --</option>
+                                        @foreach (var sp in DanhSachSanPham)
+                                        {
+                                            <option value="@sp.MaSanPham">@sp.TenSanPham</option>
+                                        }
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control" @bind="qt.SoLuong" />
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-danger" @onclick="() => RemoveQuaTang(qt)">Xóa</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+
+
+        <div class="d-flex justify-content-center gap-3 mt-2">
+            <button type="submit" class="btn btn-save">Lưu</button>
+            <button type="button" class="btn btn-cancel"  @onclick="ResetForm">Hủy</button>
+    </div>
+    </EditForm>
+
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 100px;">Kiểu Áp Dụng</th>
+                    @* <th style="width: 130px;">Giá Trị Đơn Hàng</th> *@
+                    <th style="width: 130px;">Giá Trị Đơn Hàng Từ</th>
+                    <th style="width: 130px;">Giá Trị Đơn Hàng Đến</th>
+                    <th>Sản phẩm áp dụng</th>
+                    
+                    <th style="width: 130px;">Giá Trị Giảm ( ĐH/SP)</th>
+                    <th>Quà Tặng</th>
+                    <th>Số lượng YC</th>
+                    <th style="width: 128px;">Hành Động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var dk in DieuKiens)
+                {
+                    <tr>
+                        <td>@dk.KieuApDung</td>
+                        @* <td>@(dk.GiaTriDonHang.HasValue ? dk.GiaTriDonHang.Value.ToString("N0")+ " VNĐ" : "")</td> *@
+                        <td>@(dk.GiaTriDonHangTu.HasValue ? dk.GiaTriDonHangTu.Value.ToString("N0")+ " VNĐ" : "")</td>
+                        <td>@(dk.GiaTriDonHangDen.HasValue ? dk.GiaTriDonHangDen.Value.ToString("N0")+ " VNĐ" : "")</td>
+                        <td>
+                            @if (dk.DKSanPhams != null)
+                            {
+                                <ul>
+                                    @foreach (var sp in dk.DKSanPhams)
+                                    {
+                                        <li>
+                                            @(sp.SanPham != null 
+                                                ? $"{sp.SanPham.TenSanPham} ({(sp.SanPham.Gia.HasValue ? sp.SanPham.Gia.Value.ToString("N0") + " VNĐ" : "")})" 
+                                                : "")
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        </td>
+                        
+                        <td>
+                            @if (dk.GiaTriGiam.HasValue)
+                            {
+                                if (dk.KieuGiam == "%")
+                                {
+                                    @($"{dk.GiaTriGiam.Value.ToString("N0")} %")
+                                }
+                                else if (dk.KieuGiam == "VNĐ")
+                                {
+                                    @($"{dk.GiaTriGiam.Value.ToString("N0")} VNĐ")
+                                }
+                                else
+                                {
+                                    @dk.GiaTriGiam.Value.ToString("N0")
+                                }
+                            }
+                            else
+                            {
+                                <text></text>
+                            }
+                        </td>
+
+                        <td>
+                            @if (dk.QuaTangs != null)
+                            {
+                                <ul>
+                                    @foreach (var qt in dk.QuaTangs)
+                                    {
+                                        <li title="@(qt.SanPham?.Gia.HasValue == true ? qt.SanPham.Gia.Value.ToString("N0") + " VNĐ" : "Chưa có")">
+                                            @qt.SanPham?.TenSanPham (SL: @qt.SoLuong)</li>
+                                    }
+                                </ul>
+                            }
+                            
+
+                        </td>
+                        <td>@dk.SoLuongYeuCau</td>
+                        <td>
+                            <button class="btn btn-warning mb-1" @onclick="@(() => Edit(dk))">Sửa</button>
+                            <button class="btn btn-danger" @onclick="@(() => DeleteAsync(dk.MaChiTiet))">Xóa</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+
+@code {
+    
+
+    [Parameter]
+    public int MaSuKien { get; set; }
+
+    private DieuKien_QuaTang DieuKienQuaTang = new();
+    private List<DieuKien_QuaTang> DanhSachQuaTang = new();
+
+    private List<SanPham> DanhSachSanPham = new();
+        private List<SanPham> DanhSachSanPhamAll = new();
+
+    private void AddQuaTang()
+    {
+        DanhSachQuaTang.Add(new DieuKien_QuaTang());
+    }
+
+    private void RemoveQuaTang(DieuKien_QuaTang qt)
+    {
+        DanhSachQuaTang.Remove(qt);
+         if (DanhSachQuaTang.Count == 0)
+    {
+        DieuKien.SoLuongYeuCau = null;
+    }
+    }
+
+    private void BackToSuKienPage()
+{
+    NavigationManager.NavigateTo("/quan-ly-su-kien"); // Đổi đường dẫn đúng của bạn nhé
+    }
+
+   
+    private DieuKien_SanPham DieuKienSanPham = new();
+    private List<DieuKien_SanPham> DanhSachSanPhamApDung = new();
+
+    private void AddSanPhamApDung()
+    {
+        DanhSachSanPhamApDung.Add(new DieuKien_SanPham());
+    }
+
+    private void RemoveSanPhamApDung(DieuKien_SanPham sp)
+    {
+        DanhSachSanPhamApDung.Remove(sp);
+    }
+
+    
+    private DieuKienKhuyenMai DieuKien = new();
+    private List<DieuKienKhuyenMai> DieuKiens = new();
+
+    private bool Editing = false;
+    private SuKien? SuKien = new() ;
+    protected override async Task OnInitializedAsync()
+    {
+        
+        DieuKien.MaSuKien = MaSuKien;
+
+        DieuKiens = await DbContext.DieuKienKhuyenMais
+            .Where(d => d.MaSuKien == MaSuKien)
+                .Include(d => d.QuaTangs).ThenInclude(q => q.SanPham)   // Include luôn sản phẩm nếu cần
+                .Include(d => d.DKSanPhams).ThenInclude(s => s.SanPham)
+            .AsNoTracking()
+            .ToListAsync();
+        
+        DanhSachQuaTang = await DbContext.DieuKien_QuaTangs
+            .Where(q => q.MaChiTiet == DieuKien.MaChiTiet)
+            .ToListAsync();
+        DanhSachSanPhamApDung = await DbContext.DieuKien_SanPhams
+            .Where(q => q.MaChiTiet == DieuKien.MaChiTiet)
+            .ToListAsync();
+
+        DanhSachSanPham = await DbContext.SanPhams.AsNoTracking().Where(p => !p.DaXoa).ToListAsync();
+        DanhSachSanPhamAll = await DbContext.SanPhams
+    .AsNoTracking()
+    .ToListAsync();
+        // Lấy thông tin sự kiện từ cơ sở dữ liệu
+        SuKien = await DbContext.SuKiens.Where(p => !p.DaXoa)
+        .FirstOrDefaultAsync(d => d.MaSuKien == MaSuKien);
+
+
+    
+
+    }
+   
+
+
+    private async Task SaveAsync()
+{
+    DbErrorMessage = null;
+    if (!check_error())
+    {
+        return;
+    }
+
+    try
+    {
+        if (Editing)
+        {
+            var existingDieuKien = await DbContext.DieuKienKhuyenMais
+                .Include(d => d.QuaTangs)
+                .Include(d => d.DKSanPhams) // Load danh sách quà tặng cũ
+                .FirstOrDefaultAsync(d => d.MaChiTiet == DieuKien.MaChiTiet);
+
+            if (existingDieuKien != null)
+            {
+                existingDieuKien.KieuApDung = DieuKien.KieuApDung;
+                @* existingDieuKien.GiaTriDonHang = DieuKien.GiaTriDonHang; *@
+                existingDieuKien.GiaTriDonHangTu = DieuKien.GiaTriDonHangTu;
+                existingDieuKien.GiaTriDonHangDen = DieuKien.GiaTriDonHangDen;
+                existingDieuKien.KieuGiam = DieuKien.KieuGiam;
+                existingDieuKien.GiaTriGiam = DieuKien.GiaTriGiam;
+                existingDieuKien.SoLuongYeuCau = DieuKien.SoLuongYeuCau;
+
+                // Cập nhật danh sách quà tặng
+                existingDieuKien.QuaTangs.Clear();
+                foreach (var qt in DanhSachQuaTang)
+                {
+                    existingDieuKien.QuaTangs.Add(new DieuKien_QuaTang
+                    {
+                        MaSanPham = qt.MaSanPham,
+                        SoLuong = qt.SoLuong
+                    });
+                }
+
+                // Cập nhật danh sách sp áp dung
+                existingDieuKien.DKSanPhams.Clear();
+                foreach (var dksp in DanhSachSanPhamApDung)
+                {
+                    existingDieuKien.DKSanPhams.Add(new DieuKien_SanPham
+                    {
+                        MaSanPham = dksp.MaSanPham,
+                    });
+                }
+
+                await DbContext.SaveChangesAsync();
+            }
+        }
+        else
+        {
+            await DbContext.DieuKienKhuyenMais.AddAsync(DieuKien);
+            await DbContext.SaveChangesAsync(); // Cần save để có MaChiTiet
+
+            foreach (var qt in DanhSachQuaTang)
+            {
+                qt.MaChiTiet = DieuKien.MaChiTiet;
+                await DbContext.DieuKien_QuaTangs.AddAsync(qt);
+            }
+            foreach (var dksp in DanhSachSanPhamApDung)
+            {
+                dksp.MaChiTiet = DieuKien.MaChiTiet;
+                await DbContext.DieuKien_SanPhams.AddAsync(dksp);
+            }
+
+            await DbContext.SaveChangesAsync();
+        }
+
+        await OnInitializedAsync();
+        ResetForm();
+    }
+    catch (Exception ex)
+    {
+        DbErrorMessage = $"Có lỗi khi lưu: {ex.Message}";
+    }
+}
+
+    private async Task Edit(DieuKienKhuyenMai dk)
+    {
+        DieuKien = new DieuKienKhuyenMai
+        {
+            MaChiTiet = dk.MaChiTiet,
+            MaSuKien = dk.MaSuKien,
+            KieuApDung = dk.KieuApDung,
+            @* GiaTriDonHang = dk.GiaTriDonHang, *@
+            GiaTriDonHangTu = dk.GiaTriDonHangTu,
+            GiaTriDonHangDen = dk.GiaTriDonHangDen,
+            KieuGiam = dk.KieuGiam,
+            GiaTriGiam = dk.GiaTriGiam,
+            SoLuongYeuCau = dk.SoLuongYeuCau
+        };
+        Editing = true;
+
+        // Tải lại quà tặng
+        DanhSachQuaTang = await DbContext.DieuKien_QuaTangs
+            .Where(q => q.MaChiTiet == dk.MaChiTiet)
+            .ToListAsync();
+
+        DanhSachSanPhamApDung = await DbContext.DieuKien_SanPhams
+            .Where(s => s.MaChiTiet == dk.MaChiTiet)
+            .ToListAsync();
+
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        var entity = await DbContext.DieuKienKhuyenMais.FindAsync(id);
+        if (entity != null)
+        {
+            DbContext.DieuKienKhuyenMais.Remove(entity);
+            await DbContext.SaveChangesAsync();
+            await OnInitializedAsync();
+        }
+    }
+
+
+    private void ResetForm()
+    {
+        DieuKien = new DieuKienKhuyenMai { MaSuKien = MaSuKien };
+        Editing = false;
+        DbErrorMessage = null;
+
+        DanhSachQuaTang.Clear();
+        DanhSachSanPhamApDung.Clear();
+
+    }
+
+
+    private void OnKieuGiamChanged(ChangeEventArgs e)
+    {
+        DieuKien.KieuGiam = e.Value?.ToString();
+    }
+    void OnGiaTriGiamChanged(ChangeEventArgs e)
+    {
+        if (!decimal.TryParse(e.Value?.ToString(), out var giaTri) || giaTri <= 0)
+        {
+            // Nếu không có giá trị hoặc <= 0 thì bỏ checked radio
+            DieuKien.KieuGiam = null;
+        }
+    }
+
+    
+    private void OnKieuApDungChanged(ChangeEventArgs e)
+    {
+        DieuKien.KieuApDung = e.Value?.ToString();
+
+        if (DieuKien.KieuApDung == "Đơn hàng")
+            {
+                // Reset danh sách sản phẩm áp dụng nếu chuyển sang "Đơn hàng"
+                DanhSachSanPhamApDung.Clear();
+            }
+            else if (DieuKien.KieuApDung == "Sản phẩm")
+            {
+                // Xoá giá trị đơn hàng nếu chuyển sang "Sản phẩm"
+                @* DieuKien.GiaTriDonHang = null; *@
+                DieuKien.GiaTriDonHangTu = null;
+                DieuKien.GiaTriDonHangDen = null;
+            }
+        StateHasChanged(); // Cập nhật lại giao diện
+    }
+
+
+
+     private bool check_error()
+    {
+        var sanPhamIds = new HashSet<int>();
+
+        foreach (var qt in DanhSachQuaTang)
+        {
+            if (qt.MaSanPham == 0)
+            {
+                DbErrorMessage = "Vui lòng chọn sản phẩm cho mỗi quà tặng.";
+                return false;
+            }
+
+            if (qt.SoLuong == null)
+            {
+                DbErrorMessage = "Vui lòng nhập số lượng quà tặng.";
+                return false;
+            }
+
+            if (qt.SoLuong <= 0)
+            {
+                DbErrorMessage = "Số lượng quà tặng phải lớn hơn 0.";
+                return false;
+            }
+
+            if (!sanPhamIds.Add(qt.MaSanPham))
+            {
+                DbErrorMessage = "Mỗi sản phẩm quà tặng chỉ được chọn một lần.";
+                return false;
+            }
+        }
+
+        if (DieuKien.KieuApDung == "Sản phẩm")
+    {
+        var spApDungIds = new HashSet<int>();
+        var allSanPhamIds = DieuKiens
+    .Where(dk => dk.MaChiTiet != DieuKien.MaChiTiet)  // lọc trước
+    .SelectMany(dk => dk.DKSanPhams)
+    .Select(sp => sp.MaSanPham)
+    .ToList();
+
+        foreach (var sp in DanhSachSanPhamApDung)
+        {
+            if (sp.MaSanPham == 0)
+            {
+                DbErrorMessage = "Vui lòng chọn sản phẩm trong danh sách áp dụng.";
+                return false;
+            }
+
+            if (!spApDungIds.Add(sp.MaSanPham))
+            {
+                DbErrorMessage = "Mỗi sản phẩm áp dụng chỉ được chọn một lần.";
+                return false;
+            }
+            // Check trùng với toàn bộ sản phẩm áp dụng khác cùng sự kiện (DieuKiens)
+        if (allSanPhamIds.Contains(sp.MaSanPham))
+        {
+            DbErrorMessage = "Sản phẩm " + GetSanPhamTen(sp.MaSanPham) + " đã tồn tại trong sự kiện này (không được trùng).";
+            return false;
+        }
+        }
+}
+    
+
+   if (DieuKien.KieuApDung?.ToLower() == "đơn hàng")
+    {
+        foreach (var dk in DieuKiens)
+        {
+            if (dk.KieuApDung?.ToLower() != "đơn hàng")
+            continue;
+
+            // Bỏ qua chính điều kiện đang kiểm tra nếu đang cập nhật
+            if (dk.MaChiTiet == DieuKien.MaChiTiet)
+                continue;
+            //chỗ này có thể bỏ nè vì dưới đã kiểm tra giao r
+            @* bool sameTu = (!dk.GiaTriDonHangTu.HasValue && !DieuKien.GiaTriDonHangTu.HasValue)||
+                        (dk.GiaTriDonHangTu.HasValue && DieuKien.GiaTriDonHangTu.HasValue &&
+                        dk.GiaTriDonHangTu.Value == DieuKien.GiaTriDonHangTu.Value);
+
+            bool sameDen = (!dk.GiaTriDonHangDen.HasValue && !DieuKien.GiaTriDonHangDen.HasValue)||
+                        (dk.GiaTriDonHangDen.HasValue && DieuKien.GiaTriDonHangDen.HasValue &&
+                        dk.GiaTriDonHangDen.Value == DieuKien.GiaTriDonHangDen.Value);
+
+            if (sameTu && sameDen)
+            {
+                DbErrorMessage = "Đã tồn tại một chi tiết khuyến mãi với cùng giá trị từ và đến.";
+                return false;
+            } *@
+       
+        // Lấy giá trị khoảng của dk
+        var dkTu = dk.GiaTriDonHangTu ?? float.MinValue;
+        var dkDen = dk.GiaTriDonHangDen ?? float.MaxValue;
+
+        // Lấy giá trị khoảng của điều kiện mới
+        var dkMoiTu = DieuKien.GiaTriDonHangTu ?? float.MinValue;
+        var dkMoiDen = DieuKien.GiaTriDonHangDen ?? float.MaxValue;
+
+        // Kiểm tra có giao nhau không
+        bool isOverlapping = dkTu <= dkMoiDen && dkMoiTu <= dkDen;
+
+        if (isOverlapping)
+        {
+            DbErrorMessage = $"Khoảng ({DieuKien.GiaTriDonHangTu} - {DieuKien.GiaTriDonHangDen}) bị trùng hoặc giao với khoảng ({dk.GiaTriDonHangTu} - {dk.GiaTriDonHangDen}).";
+            return false;
+        }
+        }
+    }
+
+
+
+        return true;
+    }
+
+    private string GetSanPhamTen(int? maSanPham)
+{
+    var sp = DanhSachSanPham.FirstOrDefault(x => x.MaSanPham == maSanPham);
+    return sp != null ? sp.TenSanPham : "Không xác định";
+}
+
+
+    private string? DbErrorMessage;
+    private void ClearErrorMessage()
+    {
+        DbErrorMessage = null;
+    }
+
+
+
+}

@@ -1,0 +1,408 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FROASTERY.Services;
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+@code {
+    private ClaimsPrincipal? _currentUser;
+
+    // Thay đổi từ OnInitializedAsync sang OnAfterRenderAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Lấy trạng thái xác thực của người dùng
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                // In thông tin người dùng và trạng thái xác thực
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                Console.WriteLine("UserId: " + _currentUser?.FindFirst("UserId")?.Value); // In mã người dùng
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("User not authenticated.");
+                    // Chuyển hướng người dùng đến trang đăng nhập nếu chưa xác thực
+                    Navigation.NavigateTo("/dangnhap", true);
+                    return;
+                }
+
+                // Kiểm tra quyền Admin
+                if (!_currentUser.IsInRole("Admin") &&
+                    !_currentUser.IsInRole("Kế toán") &&
+                    !_currentUser.IsInRole("Kinh doanh") &&
+                    !_currentUser.IsInRole("Marketing") )
+                    
+                {
+                    Console.WriteLine("User does not have Admin role. Redirecting to /home.");
+                    // Chuyển hướng người dùng không phải Admin về trang chủ
+                    Navigation.NavigateTo("/home_admin", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+    }
+}
+
+
+
+
+@page "/thong-ke-doanh-thu"
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@inject IWebHostEnvironment Environment
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+@using System.IO
+@using FROASTERY.Components.Shared
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+
+
+
+<PageTitle>Thống kê doanh thu và số Lượng đơn hàng</PageTitle>
+
+<div class="container mt-4">
+    <h3 class="text-center mb-4">Thống kê doanh thu và Số Lượng đơn hàng</h3>
+    
+<div class="card p-3 mb-4 shadow-sm">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-2">
+            <label class="form-label">Từ ngày</label>
+            <input type="date" @bind="StartDate" class="form-control" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Đến ngày</label>
+            <input type="date" @bind="EndDate" class="form-control" />
+        </div>
+        <div class="col-md-2">
+        <label class="form-label">Loại đơn</label>
+        <select @bind="SelectedLoaiDon" class="form-select">
+            <option value="">Tất cả</option>
+            <option value="true">Đơn sỉ</option>
+            <option value="false">Đơn lẻ</option>
+        </select>
+    </div>
+
+    <div class="col-md-2 d-flex align-items-end ms-auto">
+        <button @onclick="Search" class="btn btn-success px-4 w-100">Thống Kê</button>
+    </div>
+                @if (hienThiNutInBaoCao)
+            {
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-success" @onclick="InBaoCao">In Báo Cáo</button>
+                </div>
+            }
+    </div>
+    
+
+
+
+
+    <!-- Nút tìm kiếm đẩy ra phải -->
+    <div class="col-md-2 d-flex align-items-end ms-auto">
+       
+    </div>
+</div>
+<div id="printable">
+<div class="row mt-4">
+    <div class="col-md-6">
+        @if (DonHangs.Any())
+        {
+            <div class="alert alert-info mt-3">
+                <strong>Tổng doanh thu (không bao gồm đơn đã hủy):</strong>
+                @TongDoanhThu.ToString("N0") VNĐ
+            </div>
+            
+        }
+        <h5 class="text-center">Biểu đồ Doanh thu mỗi ngày</h5>
+        <canvas id="revenueChart"></canvas>
+        <img id="revenueChartImg" style="display:none; width:100%" />
+    </div>
+
+    <div class="col-md-6">
+        @if (DonHangs.Any())
+        {
+            <div class="alert alert-info mt-3 d-flex justify-content-between custom-alert">
+                <div>
+                    <strong>Số lượng đơn:</strong> @SoLuongDonHang
+                </div>
+                <div>
+                    <strong>Số lượng đơn đã hủy:</strong> @SoLuongDonDaHuy
+                </div>
+            </div>
+
+            
+        }
+        <h5 class="text-center">Biểu đồ Số lượng đơn hàng mỗi ngày</h5>
+        <canvas id="orderCountChart"></canvas>
+        <img id="orderCountChartImg" style="display:none; width:100%" />
+    </div>
+</div>
+</div>
+<style>
+
+    .custom-alert {
+    background-color: rgba(255, 99, 132, 0.4); /* Màu nền nhạt hơn với rgba */
+    border-color: rgba(255, 99, 132, 0.9);     /* Màu viền */
+}
+
+</style>
+@code {
+    [Inject]
+public IJSRuntime JS { get; set; } = default!;
+
+private async Task RenderCharts()
+{
+    try
+    {
+        await JS.InvokeVoidAsync("renderCharts", DoanhThuTheoNgay, DonHangTheoNgay);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Lỗi khi gọi renderCharts: " + ex.Message);
+    }
+}
+
+
+     private DateTime? StartDate { get; set; }
+    private DateTime? EndDate { get; set; }
+    private string? SelectedLoaiDon { get; set; } = "";
+
+    private bool? GetLoaiDonBool()
+    {
+        if (bool.TryParse(SelectedLoaiDon, out var result))
+        {
+            return result;
+        }
+        return null;
+    }
+
+    private float TongDoanhThu { get; set; } = 0;
+    private int SoLuongDonHang { get; set; } = 0;
+    private int SoLuongDonDaHuy { get; set; } = 0;
+   private async Task Search()
+
+    {
+        
+            DonHangs = FullDonHangs.Where(item =>
+                
+                    
+                (
+                    // Lọc theo khoảng thời gian
+                    (!StartDate.HasValue || (item.ThoiGian.HasValue && item.ThoiGian.Value.Date >= StartDate.Value.Date)) &&
+                    (!EndDate.HasValue || (item.ThoiGian.HasValue && item.ThoiGian.Value.Date <= EndDate.Value.Date))
+                )
+                
+                &&
+                (
+                    // Lọc theo loại đơn
+                   string.IsNullOrEmpty(SelectedLoaiDon) || (item.LoaiDon == GetLoaiDonBool())
+                )
+                
+
+            ).ToList();
+
+             // Tính tổng doanh thu, loại trừ các đơn đã hủy
+    TongDoanhThu = DonHangs
+        .Where(d => !string.Equals(d.TrangThai?.Trim(), "Đã hủy", StringComparison.OrdinalIgnoreCase))
+        .Sum(d => d.TongTien ?? 0);
+
+    // Đếm số lượng đơn hàng, loại trừ các đơn đã hủy
+SoLuongDonHang = DonHangs
+    .Count(d => !string.Equals(d.TrangThai?.Trim(), "Đã hủy", StringComparison.OrdinalIgnoreCase));
+
+// Tính số lượng đơn đã hủy
+    SoLuongDonDaHuy = DonHangs
+        .Count(d => string.Equals(d.TrangThai?.Trim(), "Đã hủy", StringComparison.OrdinalIgnoreCase));  
+
+    TinhToanThongKeTheoNgay(); // thêm dòng này cuối hàm
+    await RenderCharts(); // thêm dòng này sau TinhToanThongKeTheoNgay()
+
+    hienThiNutInBaoCao = true;
+ 
+    StateHasChanged(); // đảm bảo cập nhật dữ liệu
+
+    
+    }
+
+
+    private Dictionary<string, float> DoanhThuTheoNgay = new();
+private Dictionary<string, int> DonHangTheoNgay = new();
+
+private void TinhToanThongKeTheoNgay()
+{
+    DoanhThuTheoNgay = DonHangs
+        .Where(d => !string.Equals(d.TrangThai?.Trim(), "Đã hủy", StringComparison.OrdinalIgnoreCase) && d.ThoiGian.HasValue)
+        .GroupBy(d => d.ThoiGian!.Value.Date)
+        .OrderBy(g => g.Key)
+        .ToDictionary(
+            g => g.Key.ToString("dd/MM"),
+            g => g.Sum(d => d.TongTien ?? 0)
+        );
+
+    DonHangTheoNgay = DonHangs
+        .GroupBy(d => d.ThoiGian!.Value.Date)
+        .OrderBy(g => g.Key)
+        .ToDictionary(
+            g => g.Key.ToString("dd/MM"),
+            g => g.Count()
+        );
+}
+
+
+}
+
+    <!-- Bảng danh sách đơn hàng -->
+    @* <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 44px">Mã</th>
+                    <th style="width: 100px">Ngày Đặt</th>
+                    <th style="width: 40px">Loại Đơn</th>
+                    <th>Khách Hàng</th>
+                    <th style="width: 100px">Thông tin Liên Lạc</th>
+                    <th>Địa Chỉ</th>
+                    <th>Chi Tiết</th>
+                    <th style="width: 60px">Khuyến mại</th>
+                    <th style="width: 120px">Tổng Tiền</th>
+                    <th style="width: 98px">PT Thanh Toán</th>
+                    <th style="width: 60px">Trạng Thái</th>
+                    <th>Quà Tặng</th>
+                   
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var dh in DonHangs)
+                {
+                    <tr>
+                        <td>@dh.MaDonHang</td>
+                        <td>@dh.ThoiGian?.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@(dh.LoaiDon == true ? "Đơn Sỉ" : "Đơn Lẻ")</td>
+                        <td>@dh.Ten</td>
+                        <td>@dh.ThongTinLienLac</td>
+                        <td>@dh.DiaChi</td>
+                        <td>
+                            @if (SanPhams != null && dh.ChiTietDonHangs != null)
+                            {
+                                <ul>
+                                    @foreach (var ct in dh.ChiTietDonHangs)
+                                    {
+                                        var sp = SanPhams.FirstOrDefault(s => s.MaSanPham == ct.MaSanPham);
+                                        if (sp != null)
+                                        {
+                                            <li>@sp.TenSanPham (@ct.SoLuong) - @( sp.Gia.HasValue ? sp.Gia.Value.ToString("N0") : "0")
+                                                VNĐ</li>
+
+                                        }
+                                    }
+                                </ul>
+                            }
+                        </td>
+                        <td title="@(KhuyenMais.FirstOrDefault(km => km.MaSuKien == dh.MaKhuyenMai)?.NoiDung ?? "Không có khuyến mại")">
+                            @dh.MaKhuyenMai
+                        </td>
+
+                        <td>@(dh.TongTien.HasValue? dh.TongTien.Value.ToString("N0") : "0") VNĐ</td>
+                        <td>@dh.PhuongThucThanhToan</td>
+                        <td>@dh.TrangThai</td>
+                        <td>
+                            @if (dh.ChiTietQuaTangDonHangs != null && dh.ChiTietQuaTangDonHangs.Any())
+                            {
+                                <ul>
+                                    @foreach (var qt in dh.ChiTietQuaTangDonHangs)
+                                    {
+                                    var spQuaTang = SanPhams?.FirstOrDefault(s => s.MaSanPham == qt.MaSanPhamQuaTang);
+                                    if (spQuaTang != null)
+                                    {
+                                        <li>@spQuaTang.TenSanPham (@qt.SoLuong)</li>
+                                    }
+                                    
+                                    }
+                                </ul>
+                            }
+                        </td>
+                        
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div> *@
+</div>
+
+
+
+@code {
+    private List<DonHang> DonHangs = new();
+    private List<DonHang> FullDonHangs = new();
+    private List<SanPham> SanPhams = new();
+    private List<ChiTietDonHang> ChiTietDonHangs = new();
+    private List<DoiTac> DoiTacs = new();
+    private List<SuKien> KhuyenMais = new();
+    private List<ChiTietQuaTangDonHang> QuaTangs = new();
+    private DonHang DonHang = new();
+    private bool Editing = false;
+    private bool hienThiNutInBaoCao = false;
+    
+
+    protected override async Task OnInitializedAsync()
+    {
+        
+        FullDonHangs = await DbContext.DonHangs
+        .Include(d => d.DoiTac) // Nếu bạn cần luôn đối tác
+        .Include(d => d.KhuyenMai) // Nếu cần load khuyến mãi đơn hàng
+        .Include(d => d.ChiTietDonHangs)
+            .ThenInclude(ct => ct.SanPham) // Nếu ChiTietDonHang có navigation đến SanPham
+        .Include(d => d.ChiTietQuaTangDonHangs)
+            .ThenInclude(qt => qt.SanPhamQuaTang) // Nếu ChiTietQuaTangDonHang có navigation đến QuaTang
+        .Where(p => !p.DaXoa)
+        .AsNoTracking()
+        .ToListAsync();
+
+    DonHangs = new List<DonHang>(FullDonHangs);
+
+         SanPhams = await DbContext.SanPhams.AsNoTracking().Where(p => !p.DaXoa).ToListAsync();
+        DoiTacs = await DbContext.DoiTacs
+        .Where(d => d.KhachHang == true && !d.DaXoa)
+        .AsNoTracking()
+        .ToListAsync();
+       KhuyenMais = await DbContext.SuKiens
+    .Where(sk => sk.MaLoaiTin == 2 )
+    .Include(sk => sk.DieuKienKhuyenMais)
+        .ThenInclude(ct => ct.DKSanPhams)
+    .Include(sk => sk.DieuKienKhuyenMais)
+        .ThenInclude(ct => ct.QuaTangs) 
+    .Where(p => !p.DaXoa) // <-- thêm dòng này!
+    .ToListAsync();
+
+    StateHasChanged();
+
+
+    }
+    private async Task InBaoCao()
+    {
+        try
+        {
+        await JS.InvokeVoidAsync("printDivById", "printable");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi in báo cáo: " + ex.Message);
+        }
+    }
+    
+}

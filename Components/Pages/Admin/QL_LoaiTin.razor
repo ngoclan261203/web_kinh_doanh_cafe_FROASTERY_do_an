@@ -1,0 +1,229 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FROASTERY.Services;
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+@code {
+    private ClaimsPrincipal? _currentUser;
+
+    // Thay đổi từ OnInitializedAsync sang OnAfterRenderAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Lấy trạng thái xác thực của người dùng
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                // In thông tin người dùng và trạng thái xác thực
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                Console.WriteLine("UserId: " + _currentUser?.FindFirst("UserId")?.Value); // In mã người dùng
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("User not authenticated.");
+                    // Chuyển hướng người dùng đến trang đăng nhập nếu chưa xác thực
+                    Navigation.NavigateTo("/dangnhap", true);
+                    return;
+                }
+
+                // Kiểm tra quyền Admin
+                if (!_currentUser.IsInRole("Admin") &&
+                    !_currentUser.IsInRole("Marketing"))
+                {
+                    Console.WriteLine("User does not have Admin role. Redirecting to /home.");
+                    // Chuyển hướng người dùng không phải Admin về trang chủ
+                    Navigation.NavigateTo("/home_admin", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+    }
+}
+
+
+
+
+@page "/quan-ly-loai-tin"
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+@using FROASTERY.Components.Shared
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+
+<ErrorDisplay ErrorMessage="@DbErrorMessage" OnClear="ClearErrorMessage" />
+
+<PageTitle>Quản lý Loại Tin</PageTitle>
+
+<div class="container mt-4">
+    <h3 class="text-center">Quản lý Loại Tin</h3>
+    <h5>@(Editing ? "Chỉnh sửa" : "Thêm mới") Loại Tin</h5>
+
+    <EditForm Model="LoaiTin" OnValidSubmit="SaveAsync" class="border p-4 rounded shadow bg-light mb-4">
+        <DataAnnotationsValidator />
+
+        <div class="row">
+            <div class="col-md-3">
+                <label>Mã loại tin:</label>
+                <input type="text" @bind="LoaiTin.MaLoaiTin" class="form-control mb-2" readonly />
+            </div>
+            <div class="col-md-6">
+                <label>Tên loại tin:</label>
+                <div class="position-relative mb-2 validation-wrapper">
+                    <input type="text" @bind="LoaiTin.TenLoaiTin" class="form-control mb-2" />
+                    <ValidationMessage For="@(() => LoaiTin.TenLoaiTin)" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label>Trạng thái:</label>
+                <div class="d-flex align-items-center mb-2">
+                    <input type="checkbox" @bind="LoaiTin.TrangThai" class="form-check-input me-2" />
+                    Hoạt động
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3 mt-2">
+            <button type="submit" class="btn btn-save">Lưu</button>
+            <button type="button" class="btn btn-cancel" @onclick="ResetForm">Hủy</button>
+        </div>
+    </EditForm>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 100px;">Mã</th>
+                    <th>Tên Loại Tin</th>
+                    <th style="width: 250px;">Trạng Thái</th>
+                    <th style="width: 180px;">Hành Động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var l in LoaiTins)
+                {
+                    <tr>
+                        <td>@l.MaLoaiTin</td>
+                        <td>@l.TenLoaiTin</td>
+                        <td>@(l.TrangThai ? "Hoạt động" : "Không hoạt động")</td>
+                        <td>
+                            <button @onclick="() => Edit(l)" class="btn btn-warning">Sửa</button>
+                            <button @onclick="() => DeleteAsync(l.MaLoaiTin)" class="btn btn-danger">Xóa</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private string? DbErrorMessage;
+    private void ClearErrorMessage() => DbErrorMessage = null;
+
+    private List<LoaiTin> LoaiTins = new();
+    private LoaiTin LoaiTin = new();
+    private bool Editing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoaiTins = await DbContext.LoaiTins.AsNoTracking().Where(x => !x.DaXoa).ToListAsync();
+       
+        LoaiTins.Reverse(); // đảo ngay sau khi load
+    }
+
+    private void Edit(LoaiTin l)
+    {
+        LoaiTin = new LoaiTin
+        {
+            MaLoaiTin = l.MaLoaiTin,
+            TenLoaiTin = l.TenLoaiTin,
+            TrangThai = l.TrangThai
+        };
+        Editing = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        DbErrorMessage = null;
+        var isDuplicate = await DbContext.LoaiTins
+            .AnyAsync(x => x.TenLoaiTin == LoaiTin.TenLoaiTin.Trim() && x.MaLoaiTin != LoaiTin.MaLoaiTin);
+
+        if (isDuplicate)
+        {
+            DbErrorMessage = "Tên loại tin đã tồn tại.";
+            return;
+        }
+
+        if (Editing)
+        {
+            var entity = await DbContext.LoaiTins.FindAsync(LoaiTin.MaLoaiTin);
+            if (entity != null)
+            {
+                entity.TenLoaiTin = LoaiTin.TenLoaiTin;
+                entity.TrangThai = LoaiTin.TrangThai;
+            }
+        }
+        else
+        {
+            try
+            {
+                await DbContext.LoaiTins.AddAsync(LoaiTin);
+            }
+            catch (Exception ex)
+            {
+                DbErrorMessage = "Lưu dữ liệu thất bại: " + ex.Message;
+                return;
+            }
+        }
+
+        await DbContext.SaveChangesAsync();
+        await OnInitializedAsync();
+        ResetForm();
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        var entity = await DbContext.LoaiTins.FindAsync(id);
+        if (entity != null)
+        {
+            entity.DaXoa = true;
+            await DbContext.SaveChangesAsync();
+
+            // Reload danh sách những loại chưa bị xóa
+           await OnInitializedAsync();
+        }
+    }
+
+    @* private async Task DeleteAsync(int id)
+    {
+        var entity = await DbContext.LoaiTins.FindAsync(id);
+        if (entity != null)
+        {
+            DbContext.LoaiTins.Remove(entity);
+            await DbContext.SaveChangesAsync();
+            LoaiTins = await DbContext.LoaiTins.AsNoTracking().ToListAsync();
+        }
+    } *@
+
+    private void ResetForm()
+    {
+        LoaiTin = new LoaiTin();
+        Editing = false;
+        DbErrorMessage = null;
+    }
+}

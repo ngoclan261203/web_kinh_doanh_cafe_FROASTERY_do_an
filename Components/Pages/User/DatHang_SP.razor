@@ -1,0 +1,838 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FROASTERY.Services;
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+@code {
+    private ClaimsPrincipal? _currentUser;
+    [Parameter]
+    public int MaSanPham { get; set; }
+    // Thay đổi từ OnInitializedAsync sang OnAfterRenderAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                Console.WriteLine("UserId: " + _currentUser?.FindFirst("UserId")?.Value); // In mã người dùng
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("User not authenticated.");
+    
+                    Navigation.NavigateTo("/dangnhap", true);
+                    return;
+                }
+
+                if (!_currentUser.IsInRole("User"))
+                    
+                {
+                    Console.WriteLine("User does not have Admin role. Redirecting to /home.");
+                   
+                    Navigation.NavigateTo("/", true);
+                }
+
+                email = _currentUser?.Identity?.Name;
+                if (!string.IsNullOrEmpty(email))
+            {
+                await LayMaNguoiDungVaGioHangAsync(email);
+                StateHasChanged(); // cập nhật lại UI sau khi có dữ liệu
+            }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+
+        
+    }
+
+    private int? MaNguoiDung;
+    private string? email;
+   
+private async Task LayMaNguoiDungVaGioHangAsync(string email)
+{
+    var nguoiDung = await DbContext.NguoiDungs
+        .FirstOrDefaultAsync(u => u.Email == email);
+
+    if (nguoiDung != null)
+    {
+        MaNguoiDung = nguoiDung.MaNguoiDung;
+        DonHang.Ten = nguoiDung.HoTen;
+        DonHang.ThongTinLienLac = nguoiDung.SoDienThoai ?? "";;
+        Console.WriteLine("Mã người dùng: " + MaNguoiDung);
+        Console.WriteLine("Số điện thoại: " + DonHang.ThongTinLienLac);
+        // Lấy sản phẩm theo mã MaSanPham
+        var sanPham = await DbContext.SanPhams
+            .FirstOrDefaultAsync(sp => sp.MaSanPham == MaSanPham);
+
+        if (sanPham == null)
+        {
+            Console.WriteLine($"Không tìm thấy sản phẩm với mã {MaSanPham}");
+            Navigation.NavigateTo("/quangba", true);
+            return;
+        }
+
+        Console.WriteLine($"Tìm thấy sản phẩm: {sanPham.TenSanPham}");
+
+        // Gán vào chi tiết đơn hàng
+        ChiTietDonHangs = new List<ChiTietDonHang>
+        {
+            new ChiTietDonHang
+            {
+                MaSanPham = sanPham.MaSanPham,
+                SoLuong = 1, // hoặc để người dùng chọn sau
+                SanPham = sanPham
+            }
+        };
+
+        CapNhatTongTienVaTienGiam(); // nếu có
+        StateHasChanged(); // cập nhật lại UI
+    }
+    else
+    {
+        Console.WriteLine("Không tìm thấy người dùng với email: " + email);
+    }
+}
+}
+
+
+@page "/dathangsp/{MaSanPham:int}"
+
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@inject IWebHostEnvironment Environment
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+@using System.IO
+@using FROASTERY.Components.Shared
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+
+
+<PageTitle>Thanh Toán Đơn Hàng</PageTitle>
+
+<div class="container mt-4">
+    @* <h3 class="text-center mb-4">Thanh Toán Đơn Hàng</h3> *@
+    <div class="position-relative mb-4">
+    <button class="btn btn-secondary btn-sm position-absolute start-0" @onclick="BackToPage">
+        <i class="bi bi-arrow-left me-1"></i> Quay lại
+    </button>
+
+    <h3 class="text-center">Thanh Toán Đơn Hàng</h3>
+</div>
+
+ @if (showError && !string.IsNullOrEmpty(errorMessage))
+{
+    <div class="toast-container position-fixed end-0 p-3" style="top: 4rem; z-index: 1055;">
+        <div class="toast show align-items-center text-bg-danger border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    @errorMessage
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                        @onclick="() => showError = false"></button>
+            </div>
+        </div>
+    </div>
+}
+
+
+    <EditForm Model="DonHang" OnValidSubmit="SaveAsync" class="border p-4 rounded shadow bg-light mb-4">
+        <DataAnnotationsValidator />
+
+        <div class="row mb-3">
+            
+            <div class="col-md-4">
+                
+                    <label><h6>Họ tên: @DonHang.Ten</h6></label>
+                    
+            </div>
+
+            <div class="col-md-4">
+                    <label>Thông tin Liên Lạc:</label>
+                    <div class="position-relative mb-2 validation-wrapper">
+                        <input type="text" @bind="DonHang.ThongTinLienLac" class="form-control mb-2" />
+                        <ValidationMessage For="@(() => DonHang.ThongTinLienLac)" />
+                    </div>
+                    <label>Địa Chỉ:</label>
+                    <div class="position-relative mb-2 validation-wrapper">
+                        <input type="text" @bind="DonHang.DiaChi" class="form-control mb-2" placeholder="Nhập địa chỉ nhận hàng" />
+                        <ValidationMessage For="@(() => DonHang.DiaChi)" />
+                    </div>
+                
+            </div>
+
+            <div class="col-md-4">
+
+                <label>Phương Thức Thanh Toán:</label>
+                <select class="form-control mb-2" @bind="DonHang.PhuongThucThanhToan">
+                    <option value=""></option>
+                    @foreach (var pt in PhuongThucList)
+                    {
+                        <option value="@pt">@pt</option>
+                    }
+                </select>
+
+                <label>Mã Khuyến Mãi:</label>
+                
+                 <select class="form-control mb-2" @bind="DonHang.MaKhuyenMai"
+        @bind:after="CapNhatTongTienVaTienGiam"  title="@(KhuyenMais.FirstOrDefault(km => km.MaSuKien == DonHang.MaKhuyenMai)?.NoiDung ?? "Không có khuyến mại")">
+                    <option value=""></option>
+                   @foreach (var km in KhuyenMais.Where(k => IsSuKienDangDienRa(k)))
+                    {
+                        <option value="@km.MaSuKien">@km.TieuDe</option>
+                    }
+                </select>
+
+            </div>
+        </div>
+        
+        <div class="d-flex justify-content-between align-items-center">
+    <h5 class="d-inline-block">Thông tin Sản Phẩm</h5>
+</div>
+
+
+        <table class="table mt-3">
+            <thead>
+                <tr>
+                    <th>Sản Phẩm</th>
+                    <th style="width: 200px">Số Lượng</th>
+                    <th style="width: 250px">Giá Bán</th>
+                    <th style="width: 250px">Thành Tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var ct in ChiTietDonHangs)
+                {
+                    <tr>
+                        
+                        <td>
+    @SanPhams.FirstOrDefault(sp => sp.MaSanPham == ct.MaSanPham)?.TenSanPham
+</td>
+
+                        
+                            <td>
+    <input type="number" 
+           value="@ct.SoLuong" 
+           class="form-control"
+           @oninput="(e) => OnSoLuongChanged(ct, e)" />
+</td>
+
+                          
+                        
+                        <td>
+                            @GetGiaSanPham(ct.MaSanPham).ToString("N0") VNĐ
+                        </td>
+
+                        <td>@((ct.ThanhTien = (ct.SoLuong ?? 0) * GetGiaSanPham(ct.MaSanPham)).Value.ToString("N0")) VNĐ
+                        </td>
+                        
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+       <div class="row mt-4">
+    <!-- Cột bên trái: Quà tặng -->
+    <div class="col-md-6">
+        <h5>Quà Tặng Kèm</h5>
+        @if (QuaTangs != null && QuaTangs.Any())
+        {
+            <ul class="list-group">
+                @foreach (var qt in QuaTangs)
+                {
+                    var tenSanPham = SanPhams.FirstOrDefault(sp => sp.MaSanPham == qt.MaSanPhamQuaTang)?.TenSanPham ?? "Không rõ";
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>@tenSanPham</span>
+                        <span class="badge bg-primary rounded-pill">@qt.SoLuong</span>
+                    </li>
+                }
+            </ul>
+        }
+        else
+        {
+            <p class="text-muted">Không có quà tặng nào kèm theo.</p>
+        }
+    </div>
+
+    <!-- Cột bên phải: Tổng tiền -->
+    <div class="col-md-6">
+       
+        <div class="border rounded p-3 bg-light">
+        <div class="d-flex justify-content-between mb-2">
+            <strong>Tổng Tiền:</strong>
+            <span>@TongTienTamHienTai.ToString("N0") VNĐ</span>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+            <strong>Giảm Giá:</strong>
+            <span>@TienGiamHienTai.ToString("N0") VNĐ</span>
+        </div>
+        <div class="d-flex justify-content-between">
+            <strong>Thành Tiền:</strong>
+            <span>@DonHang.TongTien?.ToString("N0") VNĐ</span>
+        </div>
+    </div>
+    </div>
+</div>
+
+        <div class="d-flex justify-content-center gap-3 mt-2">
+            <button type="submit" class="btn btn-save">Đặt Hàng</button>
+        </div>
+    </EditForm>
+
+
+@code{
+
+
+
+  
+private List<DonHang> DonHangs = new();
+    private List<DonHang> FullDonHangs = new();
+    private List<SanPham> SanPhams = new();
+    private List<ChiTietDonHang> ChiTietDonHangs = new();
+    private List<DoiTac> DoiTacs = new();
+    private List<SuKien> KhuyenMais = new();
+    private List<ChiTietQuaTangDonHang> QuaTangs = new();
+    private DonHang DonHang = new();
+    
+    private List<string> PhuongThucList = new()
+    {
+    "Thanh toán khi nhận hàng", "Thanh toán qua ngân hàng"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        
+        FullDonHangs = await DbContext.DonHangs
+        .Include(d => d.DoiTac) // Nếu bạn cần luôn đối tác
+        .Include(d => d.KhuyenMai) // Nếu cần load khuyến mãi đơn hàng
+        .Include(d => d.ChiTietDonHangs)
+            .ThenInclude(ct => ct.SanPham) // Nếu ChiTietDonHang có navigation đến SanPham
+        .Include(d => d.ChiTietQuaTangDonHangs)
+            .ThenInclude(qt => qt.SanPhamQuaTang)
+         .Where(p => !p.DaXoa) // Nếu ChiTietQuaTangDonHang có navigation đến QuaTang
+        .AsNoTracking()
+        .ToListAsync();
+
+    DonHangs = new List<DonHang>(FullDonHangs);
+
+       SanPhams = await DbContext.SanPhams.AsNoTracking().Where(p => !p.DaXoa).ToListAsync();
+      
+        
+       KhuyenMais = await DbContext.SuKiens
+    .Where(sk => sk.MaLoaiTin == 2 )
+    .Include(sk => sk.DieuKienKhuyenMais)
+        .ThenInclude(ct => ct.DKSanPhams)
+    .Include(sk => sk.DieuKienKhuyenMais)
+        .ThenInclude(ct => ct.QuaTangs) 
+    .Where(p => !p.DaXoa) // <-- thêm dòng này!
+    .ToListAsync();
+
+    }
+    
+    
+    private async Task SaveAsync()
+    {
+        @* DbErrorMessage = null; *@
+        if (!ValidateChiTiet())
+        {
+            return;
+        }
+
+        bool khoDu = true; // mặc định là true, không cần kiểm tra nếu là Đã hủy
+    
+        khoDu = await KiemTraKhoDuAsync(
+            ChiTietDonHangs,
+            QuaTangs,
+            new List<ChiTietDonHang>(),
+            new List<ChiTietDonHang>()
+        );
+
+        if (!khoDu)
+        {
+            return;
+        }
+
+            DonHang.ThoiGian = DateTime.Now;
+            DonHang.MaNguoiDung = MaNguoiDung;
+            await DbContext.DonHangs.AddAsync(DonHang);
+            await DbContext.SaveChangesAsync();
+
+            foreach (var ct in ChiTietDonHangs)
+            {
+                ct.MaDonHang = DonHang.MaDonHang;
+                await DbContext.ChiTietDonHangs.AddAsync(ct);
+            }
+            foreach (var qt in QuaTangs)
+            {
+                await DbContext.ChiTietQuaTangDonHangs.AddAsync(new ChiTietQuaTangDonHang
+                {
+                    MaDonHang = DonHang.MaDonHang,
+                    MaSanPhamQuaTang = qt.MaSanPhamQuaTang,
+                    SoLuong = qt.SoLuong
+                });
+            }
+
+            await DbContext.SaveChangesAsync();
+            
+                await CapNhatKhoTheoChiTietAsync(new List<ChiTietDonHang>(), ChiTietDonHangs);
+                var quaTangAsChiTiet = QuaTangs.Select(q => new ChiTietDonHang
+                    {
+                        MaSanPham = q.MaSanPhamQuaTang,
+                        SoLuong = q.SoLuong
+                    }).ToList();
+                await CapNhatKhoTheoChiTietAsync( new List<ChiTietDonHang>(), quaTangAsChiTiet);
+                await DbContext.SaveChangesAsync();
+
+                
+        await OnInitializedAsync();
+        ResetForm();
+        Navigation.NavigateTo("/lich-su-don-hang", true);
+    }
+
+    
+
+     //hàm check lỗi 
+    private bool showError = false;
+  private string? errorMessage;
+
+  private bool ValidateChiTiet()
+  {
+      if (string.IsNullOrWhiteSpace(DonHang.ThongTinLienLac))
+      {
+          ShowError("Thông tin liên lạc không được để trống.");
+          return false;
+      }
+      if (string.IsNullOrWhiteSpace(DonHang.DiaChi))
+      {
+          ShowError("Địa chỉ không được để trống.");
+          return false;
+      }
+      if (string.IsNullOrWhiteSpace(DonHang.PhuongThucThanhToan))
+      {
+          ShowError("Bạn chưa chọn phương thức thanh toán.");
+          return false;
+      }
+      foreach (var ct in ChiTietDonHangs)
+      {
+          if (ct.SoLuong <= 0)
+          {
+              ShowError("Số lượng sản phẩm phải lớn hơn 0");
+              return false;
+          }
+      }
+      return true;
+  }
+
+  private void ShowError(string message)
+  {
+      errorMessage = message;
+      showError = true;
+      _ = Task.Run(async () =>
+      {
+          await Task.Delay(3000);
+          showError = false;
+          await InvokeAsync(StateHasChanged);
+      });
+  }
+
+    @* private string? DbErrorMessage;
+    private void ClearErrorMessage()
+    {
+        DbErrorMessage = null;
+    } *@
+    private void ResetForm()
+    {
+        DonHang = new DonHang();
+        ChiTietDonHangs = new List<ChiTietDonHang>();
+            QuaTangs = new List<ChiTietQuaTangDonHang>();
+        @* DbErrorMessage = null; *@
+    }
+
+    private void BackToPage()
+    {
+    Navigation.NavigateTo("/quangba", true); // Đổi đường dẫn đúng của bạn nhé
+    }
+ 
+}
+
+</div>
+
+
+
+@code {
+    
+    private void OnSoLuongChanged(ChiTietDonHang ct, ChangeEventArgs e)
+{
+    if (e.Value is not null && int.TryParse(e.Value.ToString(), out int newSoLuong))
+    {
+        ct.SoLuong = newSoLuong;
+    }
+
+    CapNhatTongTienVaTienGiam();
+}
+
+    private float TienGiamHienTai;
+    private float TongTienTamHienTai;
+    
+    private void CapNhatTongTienVaTienGiam()
+    {
+        TongTienTamHienTai = TinhTongTien();
+        TienGiamHienTai = TinhTienGiam();
+        DonHang.TongTien = TongTienTamHienTai - TienGiamHienTai;
+
+        // GỌI cập nhật UI ngay
+        StateHasChanged();
+    }
+
+
+    private bool IsSuKienDangDienRa(SuKien suKien)
+{
+    var now = DateTime.Now;
+
+    // Nếu không có bắt đầu và kết thúc → coi là đang diễn ra (vì không giới hạn)
+    if (!suKien.ThoiGianBatDau.HasValue && !suKien.ThoiGianKetThuc.HasValue)
+        return true;
+
+    // Nếu chỉ có bắt đầu
+    if (suKien.ThoiGianBatDau.HasValue && !suKien.ThoiGianKetThuc.HasValue)
+    {
+        return now >= suKien.ThoiGianBatDau.Value;
+    }
+
+    // Nếu chỉ có kết thúc
+    if (!suKien.ThoiGianBatDau.HasValue && suKien.ThoiGianKetThuc.HasValue)
+    {
+        return now <= suKien.ThoiGianKetThuc.Value;
+    }
+
+    // Nếu có cả bắt đầu và kết thúc
+    if (suKien.ThoiGianBatDau.HasValue && suKien.ThoiGianKetThuc.HasValue)
+    {
+        return now >= suKien.ThoiGianBatDau.Value && now <= suKien.ThoiGianKetThuc.Value;
+    }
+
+    // Mặc định không hợp lệ
+    return false;
+}
+
+
+
+    private bool IsSuKienHopLe(SuKien suKien)
+{
+    @* var thoiGianDonHang = DonHang.ThoiGian; *@
+    var thoiGianDonHang = DateTime.Now;
+
+    // Nếu không có thời gian bắt đầu và kết thúc -> áp dụng không giới hạn (hoặc false nếu bạn muốn vậy)
+    if (!suKien.ThoiGianBatDau.HasValue && !suKien.ThoiGianKetThuc.HasValue)
+    {
+        return true;  // hoặc false nếu bạn muốn không hợp lệ khi cả 2 null
+    }
+
+    // Nếu chỉ có thời gian bắt đầu
+    if (suKien.ThoiGianBatDau.HasValue && !suKien.ThoiGianKetThuc.HasValue)
+    {
+        if (thoiGianDonHang < suKien.ThoiGianBatDau.Value)
+        {
+            return false;
+        }
+    }
+
+    // Nếu chỉ có thời gian kết thúc
+    if (!suKien.ThoiGianBatDau.HasValue && suKien.ThoiGianKetThuc.HasValue)
+    {
+        if (thoiGianDonHang > suKien.ThoiGianKetThuc.Value)
+        {
+            return false;
+        }
+    }
+
+    // Nếu có cả bắt đầu và kết thúc
+    if (suKien.ThoiGianBatDau.HasValue && suKien.ThoiGianKetThuc.HasValue)
+    {
+        if (thoiGianDonHang < suKien.ThoiGianBatDau.Value || thoiGianDonHang > suKien.ThoiGianKetThuc.Value)
+        {
+            return false;
+        }
+    }
+
+    // Check ngày trong tuần nếu có cài lặp lại
+    if (suKien.NgayLapLai != null && suKien.NgayLapLai.Any())
+    {
+       
+            var thuTrongTuan = GetThuTiengViet(thoiGianDonHang.DayOfWeek);
+            if (!suKien.NgayLapLai.Contains(thuTrongTuan))
+            {
+                return false;
+            }
+        
+    }
+
+    return true;
+}
+
+
+    private string GetThuTiengViet(DayOfWeek dayOfWeek)
+    {
+        return dayOfWeek switch
+        {
+            DayOfWeek.Monday => "Thứ 2",
+            DayOfWeek.Tuesday => "Thứ 3",
+            DayOfWeek.Wednesday => "Thứ 4",
+            DayOfWeek.Thursday => "Thứ 5",
+            DayOfWeek.Friday => "Thứ 6",
+            DayOfWeek.Saturday => "Thứ 7",
+            DayOfWeek.Sunday => "Chủ nhật",
+            _ => ""
+        
+        };
+    }
+
+
+    private async Task<bool> KiemTraKhoDuAsync(
+    List<ChiTietDonHang> chiTietMoi,
+    List<ChiTietQuaTangDonHang> quaTangMoi,
+    List<ChiTietDonHang> chiTietCu,
+    List<ChiTietDonHang> quaTangCu)
+{
+    // Gộp mới
+    var tongMoi = chiTietMoi
+        .Concat(quaTangMoi.Select(q => new ChiTietDonHang
+        {
+            MaSanPham = q.MaSanPhamQuaTang,
+            SoLuong = q.SoLuong
+        }))
+        .GroupBy(x => x.MaSanPham)
+        .ToDictionary(g => g.Key, g => g.Sum(x => x.SoLuong));
+
+    // Gộp cũ
+    var tongCu = chiTietCu
+        .Concat(quaTangCu)
+        .GroupBy(x => x.MaSanPham)
+        .ToDictionary(g => g.Key, g => g.Sum(x => x.SoLuong));
+
+    // Lấy danh sách tất cả sản phẩm (cũ + mới)
+    var allKeys = tongMoi.Keys.Union(tongCu.Keys);
+
+    foreach (var maSp in allKeys)
+    {
+        var moi = tongMoi.ContainsKey(maSp) ? tongMoi[maSp] : 0;
+        var cu = tongCu.ContainsKey(maSp) ? tongCu[maSp] : 0;
+
+        var chenhlech = moi - cu;  // nếu âm thì đang giảm, dương là tăng
+
+        if (chenhlech > 0)
+        {
+            var sanPham = await DbContext.SanPhams.FirstOrDefaultAsync(sp => sp.MaSanPham == maSp);
+            if (sanPham != null)
+            {
+                var soLuongTonKho = sanPham.SoLuong ?? 0;
+                if (soLuongTonKho < chenhlech)
+                {
+                    ShowError($"Sản phẩm '{sanPham.TenSanPham}' không còn đủ trong kho. Hiện còn {soLuongTonKho}");
+                    
+                    return false;
+                }
+            }
+            else
+            {
+                ShowError($"Không tìm thấy sản phẩm với mã {maSp}.");
+                
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+
+
+    private async Task CapNhatKhoTheoChiTietAsync(
+    List<ChiTietDonHang> chiTietCu, 
+    List<ChiTietDonHang> chiTietMoi)
+{
+    // 1. Cập nhật sản phẩm có trong danh sách mới
+    foreach (var chiTietMoiItem in chiTietMoi)
+    {
+        var sanPham = await DbContext.SanPhams
+            .FirstOrDefaultAsync(sp => sp.MaSanPham == chiTietMoiItem.MaSanPham);
+        
+        if (sanPham != null)
+        {
+            var chiTietCuItem = chiTietCu.FirstOrDefault(x => x.MaSanPham == sanPham.MaSanPham);
+            int soLuongCu = chiTietCuItem?.SoLuong ?? 0;
+            int soLuongMoi = chiTietMoiItem.SoLuong ?? 0;
+            int chenhlech = soLuongMoi - soLuongCu;
+
+            Console.WriteLine($"[Cập nhật] Sản phẩm {sanPham.MaSanPham}: cũ {soLuongCu}, mới {soLuongMoi}, chênh lệch {chenhlech}");
+            
+            sanPham.SoLuong = (sanPham.SoLuong ?? 0) - chenhlech; // Đơn hàng làm giảm kho
+
+            if (sanPham.SoLuong < 0)
+                sanPham.SoLuong = 0;
+        }
+        else
+        {
+            Console.WriteLine($"[Không tìm thấy] Sản phẩm {chiTietMoiItem.MaSanPham}");
+        }
+    }
+
+    // 2. Xử lý sản phẩm bị xóa (có trong chiTietCu nhưng không còn trong chiTietMoi)
+    foreach (var chiTietCuItem in chiTietCu)
+    {
+        var stillExists = chiTietMoi.Any(x => x.MaSanPham == chiTietCuItem.MaSanPham);
+        if (!stillExists)
+        {
+            var sanPham = await DbContext.SanPhams
+                .FirstOrDefaultAsync(sp => sp.MaSanPham == chiTietCuItem.MaSanPham);
+
+            if (sanPham != null)
+            {
+                Console.WriteLine($"[Xóa] Sản phẩm {sanPham.MaSanPham}: tăng {chiTietCuItem.SoLuong}");
+
+                sanPham.SoLuong = (sanPham.SoLuong ?? 0) + (chiTietCuItem.SoLuong ?? 0);
+                @* if (sanPham.SoLuong < 0)
+                sanPham.SoLuong = 0; *@
+            }
+        }
+    }
+}
+
+
+     private float GetGiaSanPham(int? maSanPham)
+    {
+        return SanPhams.FirstOrDefault(sp => sp.MaSanPham == maSanPham)?.Gia ?? 0f;
+    }
+
+    private float TinhTongTien()
+    {
+        return ChiTietDonHangs.Sum(ct => (ct.SoLuong ?? 0) * GetGiaSanPham(ct.MaSanPham));
+    }
+    
+    private float TinhTienGiam()
+{
+    var tongTien = ChiTietDonHangs.Sum(ct => (ct.SoLuong ?? 0) * GetGiaSanPham(ct.MaSanPham));
+    var khuyenMai = KhuyenMais.FirstOrDefault(km => km.MaSuKien == DonHang.MaKhuyenMai && IsSuKienHopLe(km));
+
+    if (khuyenMai == null)
+        return 0;
+    QuaTangs.Clear();  // Reset quà trước khi tính lại
+   
+
+    float tongGiam = 0;
+
+    foreach (var ct in khuyenMai.DieuKienKhuyenMais)
+    {
+        
+        if (ct.KieuApDung == "Đơn hàng")
+        {
+            // Check nếu tổng tiền đơn hàng nằm trong khoảng áp dụng
+            if ((ct.GiaTriDonHangTu == null || tongTien >= ct.GiaTriDonHangTu) && 
+                (ct.GiaTriDonHangDen == null || tongTien <= ct.GiaTriDonHangDen))
+            {
+                if (ct.KieuGiam == "%")
+                {
+                    tongGiam += tongTien * ((ct.GiaTriGiam ?? 0f) / 100f);
+
+                }
+                else if (ct.KieuGiam== "VNĐ")
+                {
+                    tongGiam += (ct.GiaTriGiam ?? 0f);
+                }
+                // ✅ Xử lý quà khi ĐỦ điều kiện
+
+                      XuLyQuaTang(ct);
+
+                 }
+        }
+        else if (ct.KieuApDung == "Sản phẩm")
+        {
+            foreach (var ctDonHang in ChiTietDonHangs)
+            {
+                if (ct.DKSanPhams.Any(x => x.MaSanPham == ctDonHang.MaSanPham))
+                {
+                    var soLuong = ctDonHang.SoLuong ?? 0;
+                    var giaGoc = GetGiaSanPham(ctDonHang.MaSanPham);
+
+                    if (ct.KieuGiam == "%")
+                    {
+                        tongGiam += soLuong * giaGoc * ((ct.GiaTriGiam ?? 0f) / 100f);
+                    }
+                    else if (ct.KieuGiam == "VNĐ")
+                    {
+                        tongGiam += soLuong * (ct.GiaTriGiam ?? 0f);
+                    }
+                     XuLyQuaTang(ct, soLuong);
+                }
+            }
+    
+        }
+        else
+        {
+            if (ct.KieuGiam == "%")
+                {
+                    tongGiam += tongTien * ((ct.GiaTriGiam ?? 0f) / 100f);
+
+                }
+                else if (ct.KieuGiam== "VNĐ")
+                {
+                    tongGiam += (ct.GiaTriGiam ?? 0f);
+                }
+            // ✅ Trường hợp khác (null hoặc không phải Đơn hàng/SP) vẫn xử lý quà
+            XuLyQuaTang(ct);
+        }
+    }
+    
+    return tongGiam;
+}
+
+
+private void XuLyQuaTang(DieuKienKhuyenMai dieuKien, int soLuongMua = 1)
+{
+    if (dieuKien.QuaTangs != null && dieuKien.QuaTangs.Any())
+    {
+        foreach (var qua in dieuKien.QuaTangs)
+        {
+            // Nếu khuyến mãi có quy định số lượng yêu cầu (ví dụ: mua 5 mới tặng)
+            int soLuongYeuCau = dieuKien.SoLuongYeuCau ?? 1;  // Mặc định là 1 nếu không set
+
+            // Tính số lần đạt điều kiện
+            int soLanNhanQua = soLuongMua / soLuongYeuCau;
+
+            if (soLanNhanQua > 0)
+            {
+                var existing = QuaTangs.FirstOrDefault(q => q.MaSanPhamQuaTang == qua.MaSanPham);
+                if (existing != null)
+                {
+                    existing.SoLuong += (qua.SoLuong ?? 0) * soLanNhanQua;
+                }
+                else
+                {
+                    QuaTangs.Add(new ChiTietQuaTangDonHang
+                    {
+                        MaSanPhamQuaTang = qua.MaSanPham,
+                        SoLuong = (qua.SoLuong ?? 0) * soLanNhanQua
+                    });
+                }
+            }
+        }
+    }
+}
+
+
+
+}

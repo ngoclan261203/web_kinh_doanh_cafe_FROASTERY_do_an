@@ -1,0 +1,372 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FROASTERY.Services;
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+@code {
+    private ClaimsPrincipal? _currentUser;
+
+    // Thay đổi từ OnInitializedAsync sang OnAfterRenderAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Lấy trạng thái xác thực của người dùng
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                // In thông tin người dùng và trạng thái xác thực
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                Console.WriteLine("UserId: " + _currentUser?.FindFirst("UserId")?.Value); // In mã người dùng
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("User not authenticated.");
+                    // Chuyển hướng người dùng đến trang đăng nhập nếu chưa xác thực
+                    Navigation.NavigateTo("/dangnhap", true);
+                    return;
+                }
+
+                // Kiểm tra quyền Admin
+                if (!_currentUser.IsInRole("Admin") &&
+                    !_currentUser.IsInRole("Kinh doanh") &&
+                    !_currentUser.IsInRole("Kế toán"))
+                {
+                    Console.WriteLine("User does not have Admin role. Redirecting to /home.");
+                    // Chuyển hướng người dùng không phải Admin về trang chủ
+                    Navigation.NavigateTo("/home_admin", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+    }
+}
+
+@page "/loai_sp"
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@inject IWebHostEnvironment Environment
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+
+@using FROASTERY.Components.Shared
+
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+
+<PageTitle>Quản lý Loại Sản Phẩm</PageTitle>
+@* hiện thị lỗi catch  *@
+<ErrorDisplay ErrorMessage="@DbErrorMessage" OnClear="ClearErrorMessage" />
+
+<div class="container mt-4">
+
+    <h3 class="text-center">Quản lý Loại Sản Phẩm</h3>
+
+    <h5>@(Editing ? "Chỉnh sửa" : "Thêm mới") Loại Sản Phẩm</h5>
+    <EditForm Model="Loai" OnValidSubmit="SaveAsync" class="border p-4 rounded shadow bg-light mb-4">
+        <DataAnnotationsValidator />
+         
+        <div class="row">
+            <!-- Phần hiển thị ảnh -->
+            <div class="col-md-4 text-center d-flex align-items-center justify-content-center">
+                @if (!string.IsNullOrEmpty(TempImagePath))
+                {
+                    <img src="@TempImagePath" alt="Ảnh loại sản phẩm" title="Ảnh loại sản phẩm" class="form-img" />
+                }
+                else
+                {
+                    <span class="text-muted">Chưa có ảnh</span>
+                }
+            </div>
+
+            <!-- Phần nhập thông tin và chọn ảnh -->
+            <div class="col-md-8">
+                <label>Mã loại sản phẩm:</label>
+                <input type="text" @bind="Loai.MaLoaiSP" class="form-control mb-2" readonly />
+               
+                <label>Tên loại sản phẩm:</label>
+                <div class="position-relative mb-2 validation-wrapper">
+                    <input type="text" @bind="Loai.TenLoaiSP" class="form-control" />
+                    <ValidationMessage For="@(() => Loai.TenLoaiSP)" />
+                </div>
+
+                <div class="d-flex align-items-center mb-2">
+                    <label class="me-2">Trạng thái:</label>
+                    <input type="checkbox" @bind="Loai.TrangThai" /> Hoạt động
+                </div>
+
+                <label class="mt-0">Chọn ảnh:</label>
+                <InputFile OnChange="UploadImage" accept="image/*" class="form-control" />
+            </div>
+        </div>
+
+        
+        <div class="d-flex justify-content-center gap-3 mt-4">
+            <button type="submit" class="btn btn-save">Lưu</button>
+            <button type="button" class="btn btn-cancel"  @onclick="ResetForm">Hủy</button>
+        </div>
+    </EditForm>
+
+
+    @* <h5 class="text-center mt-4">Danh sách loại sản phẩm</h5> *@
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 100px;">Mã Loại</th>
+                    <th>Tên Loại</th>
+                    <th>Trạng Thái</th>
+                    <th>Ảnh</th>
+                    <th >Hành Động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var loai in LoaiSanPhams)
+                {
+                    <tr>
+                        <td>@loai.MaLoaiSP</td>
+                        <td>@loai.TenLoaiSP</td>
+                        <td>@(loai.TrangThai ? "Hoạt động" : "Không hoạt động")</td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(loai.Anh))
+                            {
+                                <img src="@loai.Anh" alt="Ảnh Loại SP" title="@loai.TenLoaiSP" class="product-img" />
+                            }
+                            else
+                            {
+                                <span>Không có ảnh</span>
+                            }
+                        </td>
+                        <td>
+                            <button @onclick="() => Edit(loai)" class="btn btn-warning">Sửa</button>
+                            <button @onclick="() => DeleteAsync(loai.MaLoaiSP)" class="btn btn-danger">Xóa</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<style>
+    .product-img {
+        max-width: 150px;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    .form-img {
+        max-width: 200px;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+    }
+   
+</style>
+
+
+
+@code {
+
+    @* code bắt lỗi catch *@
+    private string? DbErrorMessage;
+    private void ClearErrorMessage()
+    {
+        DbErrorMessage = null;
+    }
+
+   
+
+    private List<LoaiSanPham> LoaiSanPhams = new();
+    private bool Editing = false;
+    private LoaiSanPham Loai = new();
+    
+
+    protected override async Task OnInitializedAsync()
+    {
+        @* LoaiSanPhams = await DbContext.LoaiSanPhams.AsNoTracking().ToListAsync(); *@
+        
+        LoaiSanPhams = await DbContext.LoaiSanPhams
+    .AsNoTracking()
+    .Where(x => !x.DaXoa)
+    .ToListAsync();
+        LoaiSanPhams.Reverse(); // đảo ngay sau khi load
+    }
+
+    private void Edit(LoaiSanPham loai)
+    {
+        Loai = new LoaiSanPham
+        {
+            MaLoaiSP = loai.MaLoaiSP,
+            TenLoaiSP = loai.TenLoaiSP,
+            TrangThai = loai.TrangThai,
+            Anh = loai.Anh
+        };
+        TempImagePath = loai.Anh;
+        UploadedFile = null;
+        Editing = true;
+    }
+
+    
+
+    private string? TempImagePath;
+    private IBrowserFile? UploadedFile;
+
+    private async Task UploadImage(InputFileChangeEventArgs e)
+    {
+        UploadedFile = e.File;
+        if (UploadedFile != null)
+        {
+            using var stream = UploadedFile.OpenReadStream();
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            var bytes = memoryStream.ToArray();
+            
+            var base64 = Convert.ToBase64String(bytes);
+            var fileType = UploadedFile.ContentType;
+
+            TempImagePath = $"data:{fileType};base64,{base64}";
+        }
+    }
+
+    private void DeleteImageFile(string? imagePath)
+    {
+        if (!string.IsNullOrEmpty(imagePath))
+        {
+            var fullPath = Path.Combine(Environment.WebRootPath, imagePath.TrimStart('/'));
+            if (System.IO.File.Exists(fullPath))
+            {
+                try
+                {
+                    System.IO.File.Delete(fullPath);
+                }
+                catch (Exception ex)
+                {  
+                DbErrorMessage = $"Lỗi xóa file: {ex.Message}";
+                }
+            }
+        }
+    }
+
+
+    private async Task SaveAsync()
+    {
+        DbErrorMessage = null; 
+        //kiểm tra trùng lặp tên
+        var isDuplicate = await DbContext.LoaiSanPhams
+                .AnyAsync(x => x.TenLoaiSP == Loai.TenLoaiSP.Trim() && x.MaLoaiSP != Loai.MaLoaiSP);
+
+            if (isDuplicate)
+            {
+                DbErrorMessage = "Tên loại sản phẩm đã tồn tại.";
+                return;
+            }
+
+
+        string? oldImagePath = Editing ? Loai.Anh : null;
+
+
+        if (UploadedFile != null)
+        {
+            var uploadsFolder = Path.Combine(Environment.WebRootPath, "uploads");
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+            }
+
+            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(UploadedFile.Name)}";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            await using var stream = new FileStream(filePath, FileMode.Create);
+            await UploadedFile.OpenReadStream().CopyToAsync(stream);
+
+            Loai.Anh = $"/uploads/{fileName}";
+        }
+
+        if (Editing)
+        {
+            var entity = await DbContext.LoaiSanPhams.FindAsync(Loai.MaLoaiSP);
+            if (entity != null)
+            {
+                entity.TenLoaiSP = Loai.TenLoaiSP;
+                entity.TrangThai = Loai.TrangThai;
+                entity.Anh = Loai.Anh;
+            }
+        }
+        else
+        {
+            try
+            {
+                await DbContext.LoaiSanPhams.AddAsync(Loai);
+            }
+            catch (Exception ex)
+            {
+                DbErrorMessage = "Lưu dữ liệu thất bại: " + ex.Message;
+                return;
+            }
+            
+        }
+
+        await DbContext.SaveChangesAsync();
+
+        if (!string.IsNullOrEmpty(oldImagePath) && oldImagePath != Loai.Anh)
+        {
+             DeleteImageFile(oldImagePath);//hàm xóa ảnh trên server
+        }
+
+        @* LoaiSanPhams = await DbContext.LoaiSanPhams.AsNoTracking().ToListAsync(); *@
+        await OnInitializedAsync();
+        ResetForm();
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        var entity = await DbContext.LoaiSanPhams.FindAsync(id);
+        if (entity != null)
+        {
+            entity.DaXoa = true;
+            await DbContext.SaveChangesAsync();
+
+            // Reload danh sách những loại chưa bị xóa
+           await OnInitializedAsync();
+        }
+    }
+
+    @* private async Task DeleteAsync(int id)
+    {
+        var entity = await DbContext.LoaiSanPhams.FindAsync(id);
+        if (entity != null)
+        {
+           if (!string.IsNullOrEmpty(entity.Anh))
+            {
+                DeleteImageFile(entity.Anh);//hàm xóa ảnh trên server
+            }
+            
+            DbContext.LoaiSanPhams.Remove(entity);
+            await DbContext.SaveChangesAsync();
+            LoaiSanPhams = await DbContext.LoaiSanPhams.AsNoTracking().ToListAsync();
+        }
+    } *@
+    private void ResetForm()
+    {
+        Loai = new LoaiSanPham();
+        Editing = false;
+        TempImagePath = null;
+        UploadedFile = null;
+        DbErrorMessage = null;
+    }
+
+}

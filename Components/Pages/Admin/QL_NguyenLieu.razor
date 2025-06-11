@@ -1,0 +1,299 @@
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FROASTERY.Services;
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+@code {
+    private ClaimsPrincipal? _currentUser;
+
+    // Thay đổi từ OnInitializedAsync sang OnAfterRenderAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Lấy trạng thái xác thực của người dùng
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                // In thông tin người dùng và trạng thái xác thực
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                Console.WriteLine("UserId: " + _currentUser?.FindFirst("UserId")?.Value); // In mã người dùng
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("User not authenticated.");
+                    // Chuyển hướng người dùng đến trang đăng nhập nếu chưa xác thực
+                    Navigation.NavigateTo("/dangnhap", true);
+                    return;
+                }
+
+                // Kiểm tra quyền Admin
+                if (!_currentUser.IsInRole("Admin") &&
+                    !_currentUser.IsInRole("Kinh doanh") )
+                {
+                    Console.WriteLine("User does not have Admin role. Redirecting to /home.");
+                    // Chuyển hướng người dùng không phải Admin về trang chủ
+                    Navigation.NavigateTo("/home_admin", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+    }
+}
+
+
+
+@page "/quan-ly-nguyen-lieu"
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+@using FROASTERY.Components.Shared
+
+
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+
+<ErrorDisplay ErrorMessage="@DbErrorMessage" OnClear="ClearErrorMessage" />
+
+<PageTitle>Quản lý Nguyên Liệu</PageTitle>
+
+<div class="container mt-4">
+    <h3 class="text-center">Quản lý Nguyên Liệu</h3>
+    <h5>@(Editing ? "Chỉnh sửa" : "Thêm mới") Nguyên Liệu</h5>
+
+    <EditForm Model="NguyenLieu"   OnValidSubmit="SaveAsync" class="border p-4 rounded shadow bg-light mb-4">
+        <DataAnnotationsValidator />
+        
+        <div class="row">
+            <div class="col-md-6">
+                <label>Mã nguyên liệu:</label>
+                <input type="text" @bind="NguyenLieu.MaNguyenLieu" class="form-control mb-2" readonly />
+
+                <label>Tên nguyên liệu:</label>
+                @* <input type="text" @bind="NguyenLieu.TenNguyenLieu" class="form-control mb-2" required /> *@
+                <div class="position-relative mb-2 validation-wrapper">
+                    <input type="text" @bind="NguyenLieu.TenNguyenLieu" class="form-control mb-2"  />
+                    <ValidationMessage For="@(() => NguyenLieu.TenNguyenLieu)" />
+                </div>
+                
+ 
+            </div>
+            <div class="col-md-6">
+                <label>Đơn vị tính:</label>
+                <div class="position-relative mb-2 validation-wrapper">
+                    <input type="text" @bind="NguyenLieu.DonViTinh" class="form-control mb-2" />
+                    <ValidationMessage For="@(() => NguyenLieu.DonViTinh)" />
+                </div>
+                
+
+                <label>Số lượng:</label>
+                <div class="position-relative mb-2 validation-wrapper">
+                    <input type="number" step="0.01" @bind="NguyenLieu.SoLuong" class="form-control mb-2 " readonly />
+                    <ValidationMessage For="@(() => NguyenLieu.SoLuong)" />
+                </div>
+
+                <div class="d-flex align-items-center mb-2">
+                    <label class="me-2">Trạng thái:</label>
+                    <input type="checkbox" @bind="NguyenLieu.TrangThai" class="form-check-input ms-2" /> Hoạt động
+                </div>
+            </div>
+        </div>
+        
+        <div class="d-flex justify-content-center gap-3 mt-2">
+            <button type="submit" class="btn btn-save">Lưu</button>
+            <button type="button" class="btn btn-cancel"  @onclick="ResetForm">Hủy</button>
+        </div>
+    </EditForm>
+
+
+    <div class="d-flex justify-content-center mb-4">
+        <input type="text" @bind="SearchQuery" class="form-control w-50" placeholder="Tìm kiếm theo mã, tên nguyên liệu..." />
+        <button @onclick="Search" class="btn btn-success ms-2">Tìm kiếm</button>
+    </div>
+
+
+    @* <h5 class="text-center mt-4">Danh sách Nguyên Liệu</h5> *@
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 100px;">Mã </th>
+                    <th>Tên Nguyên Liệu</th>
+                    <th>Đơn Vị Tính</th>
+                    <th style="width: 100px;">Số Lượng</th>
+                    <th style="width: 150px;">Trạng Thái</th>
+                    <th style="width: 180px;">Hành Động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var nl in NguyenLieus)
+                {
+                    <tr>
+                        <td>@nl.MaNguyenLieu</td>
+                        <td>@nl.TenNguyenLieu</td>
+                        <td>@(string.IsNullOrEmpty(nl.DonViTinh) ? "Không có" : nl.DonViTinh)</td>
+                        <td>@(nl.SoLuong.HasValue ? nl.SoLuong.Value : 0)</td>
+                        <td>@(nl.TrangThai ? "Hoạt động" : "Không hoạt động")</td>
+                        <td>
+                            <button @onclick="() => Edit(nl)" class="btn btn-warning">Sửa</button>
+                            <button @onclick="() => DeleteAsync(nl.MaNguyenLieu)" class="btn btn-danger">Xóa</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+
+@code {
+    @* code bắt lỗi catch *@
+    private string? DbErrorMessage;
+    private void ClearErrorMessage()
+    {
+        DbErrorMessage = null;
+    }
+    
+    private List<NguyenLieu> NguyenLieus = new();
+     private List<NguyenLieu> FullNguyenLieus = new(); // Lưu danh sách đầy đủ
+     private string SearchQuery = string.Empty; // Biến lưu truy vấn tìm kiếm
+    private NguyenLieu NguyenLieu = new();
+    private bool Editing = false;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        
+
+        FullNguyenLieus = await DbContext.NguyenLieus.AsNoTracking()
+    .Where(x => !x.DaXoa)
+    .ToListAsync();
+
+        // Gán lại danh sách đầy đủ vào danh sách hiện tại
+        NguyenLieus = new List<NguyenLieu>(FullNguyenLieus);
+
+        NguyenLieus.Reverse(); // đảo ngay sau khi load
+    }
+    
+    
+    
+    private void Search()
+    {
+        var trimmedQuery = SearchQuery?.Trim(); // Loại bỏ dấu cách đầu/cuối
+
+        if (string.IsNullOrEmpty(trimmedQuery))
+        {
+            NguyenLieus = new List<NguyenLieu>(FullNguyenLieus);
+        }
+        else{
+            NguyenLieus = FullNguyenLieus.Where(item =>
+            (item.MaNguyenLieu.ToString().Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) == true) || 
+            (item.TenNguyenLieu.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) == true) 
+        ).ToList();
+        }
+
+        NguyenLieus.Reverse(); // đảo ngay sau khi load
+    }
+
+
+    private void Edit(NguyenLieu nl)
+    {
+        NguyenLieu = new NguyenLieu
+        {
+            MaNguyenLieu = nl.MaNguyenLieu,
+            TenNguyenLieu = nl.TenNguyenLieu,
+            DonViTinh = nl.DonViTinh,
+            SoLuong = nl.SoLuong,
+            TrangThai = nl.TrangThai
+        };
+        Editing = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        DbErrorMessage = null; 
+        //kiểm tra trùng lặp tên
+        var isDuplicate = await DbContext.NguyenLieus
+                .AnyAsync(x => x.TenNguyenLieu == NguyenLieu.TenNguyenLieu.Trim() && x.MaNguyenLieu != NguyenLieu.MaNguyenLieu);
+
+            if (isDuplicate)
+            {
+                DbErrorMessage = "Tên nguyên liệu đã tồn tại.";
+                return;
+            }
+
+
+        if (Editing)
+        {
+            var entity = await DbContext.NguyenLieus.FindAsync(NguyenLieu.MaNguyenLieu);
+            if (entity != null)
+            {
+                entity.TenNguyenLieu = NguyenLieu.TenNguyenLieu;
+                entity.DonViTinh = NguyenLieu.DonViTinh;
+                entity.SoLuong = NguyenLieu.SoLuong;
+                entity.TrangThai = NguyenLieu.TrangThai;
+            }
+        }
+        else
+        {
+            try
+            {
+                await DbContext.NguyenLieus.AddAsync(NguyenLieu);
+            }
+                catch (Exception ex)
+            {
+                DbErrorMessage = "Lưu dữ liệu thất bại: " + ex.Message;
+                return;
+            }
+        }
+
+        await DbContext.SaveChangesAsync();
+         await OnInitializedAsync();
+        ResetForm();
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        var entity = await DbContext.NguyenLieus.FindAsync(id);
+        if (entity != null)
+        {
+            entity.DaXoa = true;
+            await DbContext.SaveChangesAsync();
+
+            // Reload danh sách những loại chưa bị xóa
+           await OnInitializedAsync();
+        }
+    }
+
+    @* private async Task DeleteAsync(int id)
+    {
+        var entity = await DbContext.NguyenLieus.FindAsync(id);
+        if (entity != null)
+        {
+            DbContext.NguyenLieus.Remove(entity);
+            await DbContext.SaveChangesAsync();
+            NguyenLieus = await DbContext.NguyenLieus.AsNoTracking().ToListAsync();
+        }
+    } *@
+
+    private void ResetForm()
+    {
+        NguyenLieu = new NguyenLieu();
+        Editing = false;
+        DbErrorMessage = null;
+    }
+}

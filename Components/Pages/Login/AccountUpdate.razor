@@ -1,0 +1,118 @@
+@page "/capnhattk"
+@using FROASTERY.Data
+@inject AppDbContext DbContext
+@using FROASTERY.Models
+@using Microsoft.EntityFrameworkCore
+@rendermode InteractiveServer
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+<PageTitle>Cập nhật tài khoản</PageTitle>
+<div class="d-flex justify-content-center align-items-center" style="min-height: 100vh; background: url('/images/bg.jpg') no-repeat center center / cover;">
+    <div style="background-color: #215224; padding: 2rem; border-radius: 10px; width: 100%; max-width: 600px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+        <h4 class="text-center mb-4" style="color: white">Cập nhật thông tin tài khoản</h4>
+
+        <EditForm Model="@user" OnValidSubmit="HandleSave">
+            <DataAnnotationsValidator />
+            <div class="row mb-3">
+                <div class="col-md-4" style="color: white"><label>Email:</label></div>
+                <div class="col-md-5">
+                    <InputText class="form-control" @bind-Value="user!.Email" readonly />
+                </div>
+                <div class="col-md-3" style="color: white">
+                    <button type="button" class="btn btn-outline-secondary w-100" @onclick="EnableEdit">Chỉnh sửa thông tin</button>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4" style="color: white"><label>Họ và tên:</label></div>
+                <div class="col-md-5">
+                    <InputText class="form-control" @bind-Value="user!.HoTen" disabled="@(!isEditing)" />
+                </div>
+                <div class="col-md-3">
+                    @if (isEditing && !saveSuccessful)
+                    {
+                        <button type="submit" class="btn btn-outline-secondary w-100">Lưu</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-outline-primary w-100" @onclick="NavigateToLogin">Quay lại đăng nhập</button>
+                    }
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4" style="color: white"><label>Số điện thoại:</label></div>
+                <div class="col-md-5">
+                    <InputText class="form-control" @bind-Value="user!.SoDienThoai" disabled="@(!isEditing)" />
+                </div>
+                <div class="col-md-3">
+                    <a href="/forgot-password" class="btn btn-link w-100 p-0 text-decoration-none">Đổi mật khẩu?</a>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private NguoiDung? user = new NguoiDung(); 
+    private bool isEditing = false;
+    private bool saveSuccessful = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUser = authState.User;
+
+        if (currentUser.Identity?.IsAuthenticated == true)
+        {
+            var userEmail = currentUser.Identity.Name;
+
+            if (!string.IsNullOrEmpty(userEmail))
+            {
+                user = await DbContext.NguoiDungs.Where(p => !p.DaXoa).FirstOrDefaultAsync(u => u.Email == userEmail);
+
+                if (user == null)
+                {
+                    Console.WriteLine($"Không tìm thấy người dùng với email: {userEmail}");
+                }
+            }
+        }
+        else
+        {
+            @* NavigationManager.NavigateTo("/logout"); *@
+        }
+    }
+
+    private void EnableEdit()
+    {
+        isEditing = true;
+        saveSuccessful = false;
+    }
+
+    private async Task HandleSave()
+    {
+        isEditing = false;
+
+        if (user != null)
+        {
+            DbContext.NguoiDungs.Update(user);
+            var result = await DbContext.SaveChangesAsync();
+            if (result > 0)
+            {
+                saveSuccessful = true;
+                Console.WriteLine("Thông tin tài khoản đã được cập nhật thành công.");
+                
+            }
+        else
+            {
+                saveSuccessful = false;
+                Console.WriteLine("Lỗi khi cập nhật thông tin tài khoản.");
+                // Có thể hiển thị thông báo lỗi cho người dùng
+            }
+            StateHasChanged(); // Buộc re-render để cập nhật giao diện nút    
+        }
+    }
+    private void NavigateToLogin()
+    {
+        NavigationManager.NavigateTo("/dangnhap");
+    }
+}

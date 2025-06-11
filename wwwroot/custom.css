@@ -1,0 +1,65 @@
+/* căn lề tiêu đề bảng */
+th {
+    vertical-align: top;
+}
+        h2 {
+        text-align: left;
+        padding-top: 10px; 
+        text-align: center;
+        padding-top: 20px;
+        font-weight: bold;}
+ul {
+    list-style-type: disc;           /* vẫn giữ dấu chấm */
+    list-style-position: inside;     /* đẩy dấu chấm sát bên trái */
+    padding-left: 0;                 /* bỏ padding mặc định */
+    margin: 0;   
+}
+/* button lưu và hủy */
+.btn-save {
+    background-color: #008000;
+    border-color: #064723;
+    color: white;
+    width: 25%;
+}
+.btn-save:hover {
+    background-color: #006400; /* Xanh đậm hơn */
+    border-color: #043d1c;
+    color: white;
+}
+.btn-cancel {
+    background-color: #4e4747;
+    border-color: #4e4747;
+    color: white;
+    width: 25%;
+}
+.btn-cancel:hover {
+    background-color: #2e2a2a; /* Xám đậm hơn */
+    border-color: #2e2a2a;
+     color: white;
+}
+
+
+
+
+/* thông báo lỗi ở mỗi đối tượng */
+.validation-wrapper {
+    position: relative;
+}
+
+.validation-wrapper > .validation-message {
+    position: absolute;
+    top: -20px;
+    right: 0;
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 4px 8px;
+    font-size: 0.85rem;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    white-space: nowrap;
+
+    /* Thêm hiệu ứng mờ dần */
+    /* Hiệu ứng hiện/ẩn mượt */
+    transition: all 0.3s ease;
+}
+

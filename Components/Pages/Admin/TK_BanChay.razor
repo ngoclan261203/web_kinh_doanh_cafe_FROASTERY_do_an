@@ -1,0 +1,122 @@
+@page "/thong-ke-ban-chay"
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@inject IWebHostEnvironment Environment
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+@using System.IO
+@using FROASTERY.Components.Shared
+@inject IJSRuntime JS
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+<PageTitle>Thống kê sản phẩm bán chạy</PageTitle>
+<div class="container mt-4">
+<h3 class="text-center mb-4">Thống kê sản phẩm đã bán</h3>
+
+<div class="card p-3 mb-4 shadow-sm">
+   <div class="row"> 
+    <div class="col-md-3">
+        <label class="form-label">Từ ngày:</label>
+        <InputDate @bind-Value="tuNgay" class="form-control" />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Đến ngày:</label>
+        <InputDate @bind-Value="denNgay" class="form-control" />
+    </div>
+    <div class="col-md-3 align-self-end">
+        <button class="btn btn-success" @onclick="TaiDuLieu">Thống kê</button>
+    </div>
+                @if (hienThiNutInBaoCao)
+            {
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-success" @onclick="InBaoCao">In Báo Cáo</button>
+                </div>
+            }
+    </div> 
+</div>
+</div>
+<div id="bao-cao-in">
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8"> @* hoặc col-md-6 nếu muốn nhỏ hơn *@
+            <canvas id="chartBanHang" width="400" height="300"></canvas>
+        </div>
+    </div>
+</div>
+</div>
+@code {
+    private DateTime tuNgay = DateTime.Today.AddDays(-30);
+    private DateTime denNgay = DateTime.Today;
+    private List<ThongKeSanPhamBan> danhSachThongKe = new();
+    private bool shouldRenderChart = false;
+    private bool hienThiNutInBaoCao = false;
+    public class ThongKeSanPhamBan
+    {
+        public string TenSanPham { get; set; } = string.Empty;
+        public int SoLuongBan { get; set; }
+    }
+    public static class TrangThaiDonHang
+    {
+        public const string DaDuyet = "Đã duyệt";
+        public const string ChoDuyet = "Chờ duyệt";
+        public const string DaHuy = "Đã hủy";
+    }
+
+    private async Task TaiDuLieu()
+    {
+        danhSachThongKe = await DbContext.ChiTietDonHangs
+            .Where(ct => ct.DonHang != null
+                        && !ct.DonHang.DaXoa
+                         && ct.DonHang.ThoiGian >= tuNgay
+                         && ct.DonHang.ThoiGian <= denNgay
+                         && ct.DonHang.TrangThai == TrangThaiDonHang.DaDuyet)
+            .GroupBy(ct => ct.SanPham.TenSanPham)
+            .Select(g => new ThongKeSanPhamBan
+            {
+                TenSanPham = g.Key ?? "Không rõ",
+                SoLuongBan = g.Sum(x => x.SoLuong ?? 0)
+            })
+            .OrderByDescending(t => t.SoLuongBan)
+            .ToListAsync();
+            var donHangs = await DbContext.DonHangs.Where(x => !x.DaXoa)
+                .OrderByDescending(d => d.ThoiGian)
+                .Take(5)
+                .ToListAsync();
+
+            foreach (var dh in donHangs)
+            {
+                Console.WriteLine($"ID: {dh.MaDonHang}, Trạng thái: {dh.TrangThai}, Thời gian: {dh.ThoiGian}");
+            }
+        shouldRenderChart = true;
+        hienThiNutInBaoCao = true;
+
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (shouldRenderChart)
+        {
+            shouldRenderChart = false;
+
+            var labels = danhSachThongKe.Select(x => x.TenSanPham).ToArray();
+            var data = danhSachThongKe.Select(x => x.SoLuongBan).ToArray();
+
+            await JS.InvokeVoidAsync("veBieuDoCot", labels, data);
+        }
+    }
+            private async Task InBaoCao()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("printElementById2", "bao-cao-in");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi khi in báo cáo: " + ex.Message);
+        }
+    }
+}
+

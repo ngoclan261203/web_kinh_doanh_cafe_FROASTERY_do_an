@@ -1,0 +1,59 @@
+@page "/tat-ca-danh-gia"
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Services
+@inject DanhGiaService DanhGiaService
+<PageTitle>Danh sách đánh giá chi tiết</PageTitle>
+<h3 class="text-center mt-4">Danh sách đánh giá chi tiết</h3>
+
+@if (DanhGias == null)
+{
+    <p class="text-center text-muted">Đang tải dữ liệu...</p>
+}
+else if (!DanhGias.Any())
+{
+    <p class="text-center text-muted">Không có đánh giá nào.</p>
+}
+else
+{
+    <div class="table-responsive mt-3">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Tên khách hàng</th>
+                    <th>Liên hệ</th>
+                    <th>Sao</th>
+                    <th>Nội dung</th>
+                    <th>Ghi chú</th>
+                    <th>Thời gian gửi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var dg in DanhGias)
+                {
+                    <tr>
+                        <td>@(DanhGias.IndexOf(dg) + 1)</td>
+                        <td>@dg.HoTen</td>
+                        <td>@dg.ThongTinLienLac</td>
+                        <td>
+                            <span class="text-warning">@string.Concat(Enumerable.Repeat("★", dg.SoSao))</span>
+                        </td>
+                        <td>@dg.NoiDung</td>
+                        <td>@dg.GhiChu</td>
+                        <td>@dg.ThoiGianGui.ToString("dd/MM/yyyy HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<DanhGia>? DanhGias;
+
+    protected override async Task OnInitializedAsync()
+    {
+        DanhGias = await DanhGiaService.LayTatCaDanhGia(1, int.MaxValue); // lấy toàn bộ
+    }
+}

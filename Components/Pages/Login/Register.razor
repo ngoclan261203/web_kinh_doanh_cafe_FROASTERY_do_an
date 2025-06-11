@@ -1,0 +1,141 @@
+@page "/dangky"
+@inject NavigationManager Navigation
+@inject AppDbContext DbContext
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+@using Microsoft.EntityFrameworkCore
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+<PageTitle>Đăng ký tài khoản</PageTitle>
+<div class="container d-flex justify-content-center">
+    <div class="p-4 rounded shadow" style="background-color: #215224; width: 100%; max-width: 600px;">
+        <h3 class="text-center mb-4 " style="color: white">Đăng ký tài khoản</h3>
+        <EditForm Model="@RegisterModel" OnValidSubmit="HandleRegister">
+            <DataAnnotationsValidator />
+
+            <div class="mb-3"style="color: white">
+                <label>Email:</label>
+                <InputText @bind-Value="RegisterModel.Email" class="form-control" />
+                <ValidationMessage For="@(() => RegisterModel.Email)" />
+            </div>
+
+            <div class="mb-3"style="color: white">
+                <label>Họ và tên:</label>
+                <InputText @bind-Value="RegisterModel.HoTen" class="form-control" />
+                <ValidationMessage For="@(() => RegisterModel.HoTen)" />
+            </div>
+
+            <div class="mb-3"style="color: white">
+                <label>Số điện thoại:</label>
+                <InputText @bind-Value="RegisterModel.SoDienThoai" class="form-control" />
+                <ValidationMessage For="@(() => RegisterModel.SoDienThoai)" />
+            </div>
+
+            <div class="mb-3 position-relative" style="color: white">
+                <label>Mật khẩu:</label>
+                <input 
+                    type="@(_showPassword ? "text" : "password")"
+                    @bind="RegisterModel.MatKhau" 
+                    class="form-control pe-5" />
+                
+                <span class="position-absolute" style="top: 70%; right: 15px; transform: translateY(-50%); cursor: pointer;"
+                    @onclick="() => _showPassword = !_showPassword">
+                    <i class="@(_showRepeatPassword ? "bi bi-eye-slash" : "bi bi-eye")" style="color: black;"></i>
+                </span>
+
+                <ValidationMessage For="@(() => RegisterModel.MatKhau)" />
+            </div>
+
+            <div class="mb-3 position-relative" style="color: white">
+                <label>Nhập lại mật khẩu:</label>
+                <input 
+                    type="@(_showRepeatPassword ? "text" : "password")"
+                    @bind="RegisterModel.MatKhauLai" 
+                    class="form-control pe-5" />
+
+                <span class="position-absolute" style="top: 70%; right: 15px; transform: translateY(-50%); cursor: pointer;"
+                    @onclick="() => _showRepeatPassword = !_showRepeatPassword">
+                    <i class="@(_showRepeatPassword ? "bi bi-eye-slash" : "bi bi-eye")" style="color: black;"></i>
+                </span>
+
+                <ValidationMessage For="@(() => RegisterModel.MatKhauLai)" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="alert alert-danger">@ErrorMessage</div>
+            }
+
+            @if (IsSuccess)
+            {
+                <div class="alert alert-success">Bạn đã đăng ký thành công!</div>
+                <div class="d-flex justify-content-end">
+                    <button class="btn btn-success" @onclick="@(() => Navigation.NavigateTo("/dangnhap"))">
+                        Quay lại đăng nhập
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-outline-secondary " type="button" 
+                            @onclick="@(() => Navigation.NavigateTo("/dangnhap"))">
+                        Quay lại
+                    </button>
+                    <button class="btn btn-primary" type="submit">Đăng ký</button>
+                </div>
+            }
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private RegisterModel RegisterModel = new();
+    private string? ErrorMessage;
+    private bool IsSuccess = false;
+    private bool _showPassword = false;
+    private bool _showRepeatPassword = false;
+    private async Task HandleRegister()
+    {
+        ErrorMessage = string.Empty;
+        IsSuccess = false;
+
+        if (RegisterModel.MatKhau != RegisterModel.MatKhauLai)
+        {
+            ErrorMessage = "Mật khẩu không khớp!";
+            return;
+        }
+
+        var isEmailExists = await DbContext.NguoiDungs.AnyAsync(u => u.Email == RegisterModel.Email);
+        if (isEmailExists)
+        {
+            ErrorMessage = "Email đã tồn tại!";
+            return;
+        }
+
+        var newUser = new NguoiDung
+        {
+            Email = RegisterModel.Email,
+            HoTen = RegisterModel.HoTen,
+            SoDienThoai = RegisterModel.SoDienThoai,
+            MatKhau = PasswordHelper.HashPassword(RegisterModel.MatKhau),
+        };
+
+        await DbContext.NguoiDungs.AddAsync(newUser);
+        await DbContext.SaveChangesAsync();
+
+        // ❗ Thêm quyền mặc định "user" cho người dùng vừa tạo
+    var quyenMacDinh = new PhanQuyen
+    {
+        MaNguoiDung = newUser.MaNguoiDung, // Lúc này đã có ID do đã save
+        MaQuyen = 2
+    };
+
+    await DbContext.PhanQuyens.AddAsync(quyenMacDinh);
+    await DbContext.SaveChangesAsync(); // lưu lần 2 để lưu quyền
+
+        IsSuccess = true;
+    }
+}

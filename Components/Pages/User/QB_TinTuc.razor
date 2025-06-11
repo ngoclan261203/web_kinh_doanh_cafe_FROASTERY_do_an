@@ -1,0 +1,247 @@
+@page "/tintuc"
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data;
+@using Microsoft.EntityFrameworkCore;
+@using System.IO;
+@using System.Text;
+@inject AppDbContext DbContext
+@inject NavigationManager NavigationManager
+@inject IWebHostEnvironment Environment
+@using WordDocument = Aspose.Words.Document;
+@using Aspose.Words.Saving;
+@using System.Text.RegularExpressions; 
+
+<PageTitle>Tin Tức</PageTitle>
+<style>
+    .news-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 10px;
+        padding: 5px;
+        padding-top: 20px;
+    }
+    @* .aspose-watermark {
+    display: none !important;
+    visibility: hidden !important;
+    } *@
+    .news-card {
+        border: 1px solid #f0f0f0;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease-in-out;
+        display: flex;
+        flex-direction: column;
+        cursor: pointer;
+        height: 600px;
+    }
+
+    .news-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-image-container {
+        width: 100%;
+        height: calc(100% * 9 / 16); /* Đặt chiều cao cố định */
+        overflow: hidden;
+        border-bottom: 1px solid #eee;
+        position: relative;
+    }
+
+    .card-image {
+        width: 100%;
+        max-height: 100%;
+        height: auto;
+        display: block;
+        object-fit: cover;
+        transition: transform 0.3s ease-in-out;
+    }
+
+    .news-card:hover .card-image {
+        transform: scale(1.05); /* Hiệu ứng zoom ảnh */
+    }
+
+    .card-body {
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+    }
+
+    .card-title {
+        font-size: 1.2em;
+        font-weight: bold;
+        margin-bottom: 10px;
+        line-height: 1.3;
+        color: #333;
+        transition: color 0.3s ease-in-out;
+    }
+
+    .news-card:hover .card-title {
+        color: #06622f ;
+    }
+
+    .card-text {
+        font-size: 1em;
+        color: #777;
+        line-height: 1.5;
+        margin-bottom: 10px;
+        flex-grow: 1;
+        overflow: hidden; 
+        display: -webkit-box;
+        -webkit-line-clamp: 3; 
+        -webkit-box-orient: vertical;
+    }
+
+    .news-date {
+        font-size: 0.9em;
+        color: #aaa;
+        margin-top: auto; 
+    }
+
+    .btn-xem-chi-tiet {
+        margin-top: 10px;
+    }
+    h2 {
+        text-align: left;
+        padding-top: 10px; 
+        @* color: #06622f; *@
+        text-align: center;
+        padding-top: 20px;
+        font-weight: bold;
+    }
+
+</style>
+<Header />
+<h2>Tin tức mới nhất</h2>
+
+@if (newsList == null)
+{
+    <p>Đang tải tin tức...</p>
+}
+else if (!newsList.Any())
+{
+    <p>Không có tin tức nào.</p>
+}
+else
+{
+    <div class="news-grid">
+        @foreach (var newsItem in newsList)
+        {
+            <div class="news-card">
+                <div class="card-image-container" @onclick="() => XemChiTietTinTuc(newsItem.MaTinTuc)">
+                    @if (!string.IsNullOrEmpty(newsItem.HinhAnh))
+                    {
+                        <img src="@newsItem.HinhAnh" class="card-image" alt="@newsItem.TieuDe" onerror="this.src='images/default-news.png';" />
+                    }
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title" @onclick="() => XemChiTietTinTuc(newsItem.MaTinTuc)">@newsItem.TieuDe</h5>
+                    <p class="card-text">
+                        @if (!string.IsNullOrEmpty(newsItem.FileDinhKem))
+                        {
+                            @* string fileExtension = Path.GetExtension(newsItem.FileDinhKem).ToLowerInvariant();
+                            if (fileExtension == ".doc" || fileExtension == ".docx")
+                            {
+                                @GetFirstFiveLinesFromHtml(ConvertWordToHtml(Path.Combine(Environment.WebRootPath, newsItem.FileDinhKem.TrimStart('/'))))
+                            }
+                            else
+                            {
+                                @GetFirstLinesFromFile(newsItem.FileDinhKem, 5) // Sử dụng hàm cũ cho file văn bản khác
+                            } *@
+                            <span>Click để chi tiết để đọc nội dung...</span>
+                        }
+                        else
+                        {
+                            <span>Không có nội dung</span>
+                        }
+                    </p>
+                    <p class="news-date">@newsItem.ThoiGian.ToString("dddd, dd MMMM, yyyy")</p>
+                    @* @if (!string.IsNullOrEmpty(newsItem.FileDinhKem))
+                    {
+                        <button @onclick="() => XemChiTietTinTuc(newsItem.MaTinTuc)" class="btn btn-primary btn-sm btn-xem-chi-tiet">Xem Chi Tiết</button>
+                    } *@
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<TinTuc>? newsList;
+
+    protected override async Task OnInitializedAsync()
+    {
+        newsList = await DbContext.TinTucs.Where(p => !p.DaXoa)
+            .OrderByDescending(t => t.ThoiGian)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    private void XemChiTietTinTuc(int maTinTuc)
+    {
+        NavigationManager.NavigateTo($"/chitiettintuc/{maTinTuc}");
+    }
+    private string GetFirstLinesFromFile(string filePath, int lineCount)
+    {
+        var path = Path.Combine(Environment.WebRootPath, filePath.TrimStart('/'));
+        if (File.Exists(path))
+        {
+            try
+            {
+                var lines = File.ReadLines(path, Encoding.UTF8).Take(lineCount);
+                return string.Join(" ", lines) + (File.ReadLines(path).Count() > lineCount ? "..." : "");
+            }
+            catch (Exception ex)
+            {
+                return $"Lỗi đọc file: {ex.Message}";
+            }
+        }
+        return "Không tìm thấy file.";
+    }
+
+    private string ConvertWordToHtml(string filePath)
+    {
+        try
+        {
+            var doc = new WordDocument(filePath);
+            var options = new HtmlSaveOptions
+            {
+                ExportImagesAsBase64 = true
+            };
+            using var stream = new MemoryStream();
+            doc.Save(stream, options);
+            stream.Position = 0;
+            using var reader = new StreamReader(stream);
+            return reader.ReadToEnd();
+        }
+        catch (Exception ex)
+        {
+            return $"<p>Lỗi đọc file Word: {ex.Message}</p>";
+        }
+    }
+
+    private string GetFirstFiveLinesFromHtml(string htmlContent)
+    {
+        if (string.IsNullOrEmpty(htmlContent))
+        {
+            return string.Empty;
+        }
+
+        var paragraphMatches = Regex.Matches(htmlContent, "<p[^>]*>(.*?)</p>", RegexOptions.Singleline);
+        var firstFiveLines = new List<string>();
+
+        for (int i = 0; i < Math.Min(5, paragraphMatches.Count); i++)
+        {
+            string textContent = Regex.Replace(paragraphMatches[i].Groups[1].Value, "<[^>]*>", string.Empty).Trim();
+            if (!string.IsNullOrEmpty(textContent))
+            {
+                firstFiveLines.Add(textContent);
+            }
+        }
+
+        return string.Join(" ", firstFiveLines) + (paragraphMatches.Count > 10 ? "..." : "");
+    }
+}

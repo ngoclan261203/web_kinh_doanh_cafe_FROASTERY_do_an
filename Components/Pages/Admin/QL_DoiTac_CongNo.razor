@@ -1,0 +1,355 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FROASTERY.Services;
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+@code {
+    private ClaimsPrincipal? _currentUser;
+
+    // Thay đổi từ OnInitializedAsync sang OnAfterRenderAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Lấy trạng thái xác thực của người dùng
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                _currentUser = authState.User;
+
+                // In thông tin người dùng và trạng thái xác thực
+                Console.WriteLine("User: " + _currentUser?.Identity?.Name);
+                Console.WriteLine("UserId: " + _currentUser?.FindFirst("UserId")?.Value); // In mã người dùng
+                Console.WriteLine("Is Authenticated: " + _currentUser?.Identity?.IsAuthenticated);
+
+                // Kiểm tra nếu người dùng chưa xác thực
+                if (_currentUser?.Identity == null || !_currentUser.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("User not authenticated.");
+                    // Chuyển hướng người dùng đến trang đăng nhập nếu chưa xác thực
+                    Navigation.NavigateTo("/dangnhap", true);
+                    return;
+                }
+
+                // Kiểm tra quyền Admin
+                if (!_currentUser.IsInRole("Admin") &&
+                !_currentUser.IsInRole("Kế toán") &&
+                !_currentUser.IsInRole("Kinh doanh") &&
+                !_currentUser.IsInRole("CSKH") )
+                    
+                {
+                    Console.WriteLine("User does not have Admin role. Redirecting to /home.");
+                    // Chuyển hướng người dùng không phải Admin về trang chủ
+                    Navigation.NavigateTo("/home_admin", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error during authentication check: " + ex.Message);
+            }
+        }
+    }
+}
+
+
+
+
+@page "/doitac"
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@inject IWebHostEnvironment Environment
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+
+@using FROASTERY.Components.Shared
+
+<link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="custom.css" />
+
+
+<PageTitle>Quản lý Đối Tác</PageTitle>
+<ErrorDisplay ErrorMessage="@DbErrorMessage" OnClear="ClearErrorMessage" />
+
+<div class="container mt-4">
+    <h3 class="text-center mb-4">Quản lý Đối Tác</h3>
+
+    <!-- Form thêm/sửa đối tác -->
+    <h5 class="mt-5">@((Editing ? "Chỉnh sửa" : "Thêm mới") + " Đối Tác")</h5>
+    <EditForm Model="DoiTac"   OnValidSubmit="SaveAsync" class="border p-4 rounded shadow bg-light mb-4">
+        <DataAnnotationsValidator />
+        <div class="row">
+            <!-- Phần bên trái -->
+            <div class="col-md-6">
+                <label>Mã Đối Tác:</label>
+                <input type="text" @bind="DoiTac.MaDoiTac" class="form-control mb-2" readonly />
+
+                <label>Dư Nợ:</label>
+                <InputNumber @bind-Value="DoiTac.DuNo" class="form-control mb-2" readonly/>
+
+                <div class="d-flex align-items-center mb-2">
+                    <label>
+                        <input type="checkbox" @bind="DoiTac.KhachHang" /> Khách Hàng
+                    </label>
+                    <label class="ms-3">
+                        <input type="checkbox" @bind="DoiTac.NhaCungCap" /> Nhà Cung Cấp
+                    </label>
+                </div>
+                
+
+            </div>
+
+            <!-- Phần bên phải -->
+            <div class="col-md-6">
+                <label>Tên Đối Tác:</label>
+                <div class="position-relative mb-2 validation-wrapper">
+                    <input type="text" @bind="DoiTac.Ten" class="form-control mb-2" />
+                    <ValidationMessage For="@(() => DoiTac.Ten)" />
+                </div>
+
+                <label>Thông Tin Liên Lạc:</label>
+                <div class="position-relative mb-2 validation-wrapper">
+                   <input type="text" @bind="DoiTac.ThongTinLienLac" class="form-control mb-2" />
+                    <ValidationMessage For="@(() => DoiTac.ThongTinLienLac)" />
+                </div>
+
+                <label>Địa Chỉ:</label>
+                <div class="position-relative mb-2 validation-wrapper">
+                    <input type="text" @bind="DoiTac.DiaChi" class="form-control mb-2" />
+                    <ValidationMessage For="@(() => DoiTac.DiaChi)" />
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3 mt-2">
+            <button type="submit" class="btn btn-save">Lưu</button>
+            <button type="button" class="btn btn-cancel"  @onclick="ResetForm">Hủy</button>
+        </div>
+    </EditForm>
+
+    
+<!-- Hàng chứa radio bên trái, tìm kiếm bên phải -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- Radio Buttons bên trái -->
+    <div class="d-flex">
+        <label>Hiện thị: </label>
+        <div class="form-check ms-3">
+            <input type="radio" name="partnerFilter" class="form-check-input" value="All"  
+                @onchange="@(() => FilterDoiTacs("All"))" checked />
+            <label class="form-check-label" for="all">Tất Cả</label>
+        </div>
+        <div class="form-check ms-3">
+            <input class="form-check-input" type="radio" name="partnerFilter" value="KhachHang" 
+                @onchange="@(() => FilterDoiTacs("KhachHang"))" />
+            <label class="form-check-label" for="khachhang">Khách Hàng</label>
+        </div>
+        <div class="form-check ms-3">
+            <input class="form-check-input" type="radio" name="partnerFilter" value="NhaCungCap"  
+                @onchange="@(() => FilterDoiTacs("NhaCungCap"))" />
+            <label class="form-check-label" for="nhacungcap">Nhà Cung Cấp</label>
+        </div>
+    </div>
+
+    <!-- Tìm kiếm bên phải -->
+    <div class="d-flex">
+        <input type="text" @bind="SearchQuery" class="form-control" style="width: 400px;" placeholder="Tìm kiếm theo mã, tên, địa chỉ của đối tác..." />
+        <button @onclick="Search" class="btn btn-success ms-2">Tìm kiếm</button>
+    </div>
+</div>
+
+
+    <!-- Bảng danh sách đối tác -->
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 100px;">Mã Đối Tác</th>
+                    <th>Tên</th>
+                    <th>Thông Tin Liên Lạc</th>
+                    <th>Địa Chỉ</th>
+                    <th style ="width: 125px">Khách Hàng</th>
+                    <th style ="width: 125px">Nhà Cung Cấp</th>
+                    <th >Dư Nợ</th>
+                    <th style ="width: 128px">Hành Động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var dt in DoiTacs)
+                {
+                    <tr>
+                        <td>@dt.MaDoiTac</td>
+                        <td>@dt.Ten</td>
+                        <td>@dt.ThongTinLienLac</td>
+                        <td>@dt.DiaChi</td>
+                        <td>@(dt.KhachHang ? "Có" : "Không")</td>
+                        <td>@(dt.NhaCungCap ? "Có" : "Không")</td>
+                        <td>@(dt.DuNo.HasValue ? dt.DuNo.Value.ToString("N0") : "0") VNĐ</td>
+
+                        <td>
+                            <button @onclick="() => Edit(dt)" class="btn btn-warning">Sửa</button>
+                            <button @onclick="() => DeleteAsync(dt.MaDoiTac)" class="btn btn-danger">Xóa</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private List<DoiTac> DoiTacs = new();
+    private List<DoiTac> FullDoiTacs = new(); // Lưu danh sách đầy đủ
+    private DoiTac DoiTac = new();
+    private bool Editing = false;
+    private string SearchQuery = string.Empty;
+   
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load danh sách đối tác
+
+        FullDoiTacs = await DbContext.DoiTacs.AsNoTracking().Where(x => !x.DaXoa).ToListAsync();
+        DoiTacs = new List<DoiTac>(FullDoiTacs);
+        DoiTacs.Reverse(); // đảo ngay sau khi load    
+    }
+
+    private void Search()
+    {
+        var trimmedQuery = SearchQuery?.Trim(); 
+        if (string.IsNullOrEmpty(trimmedQuery))
+        {
+            DoiTacs = new List<DoiTac>(FullDoiTacs);
+        }
+        else
+        {
+            DoiTacs = FullDoiTacs.Where(item =>
+                (item.MaDoiTac.ToString().Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) ==true)||
+                (item.Ten.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase)==true)||
+                (item.DiaChi?.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase)== true)
+            ).ToList();
+        }
+      DoiTacs.Reverse(); // đảo ngay sau khi load    
+    }
+
+    private void FilterDoiTacs(string filter)
+    {
+        // Set the SelectedFilter based on the clicked radio button
+        var SelectedFilter = filter;
+
+        // Filter the DoiTacs list based on the selected filter
+        if (SelectedFilter == "All")
+        {
+            DoiTacs = new List<DoiTac>(FullDoiTacs); // Show all items
+        }
+        else if (SelectedFilter == "KhachHang")
+        {
+            DoiTacs = FullDoiTacs.Where(dt => dt.KhachHang).ToList(); // Show only "KhachHang"
+        }
+        else if (SelectedFilter == "NhaCungCap")
+        {
+            DoiTacs = FullDoiTacs.Where(dt => dt.NhaCungCap).ToList(); // Show only "NhaCungCap"
+        }
+         DoiTacs.Reverse(); // đảo ngay sau khi load    
+    }
+
+    private void Edit(DoiTac dt)
+    {
+        DoiTac = new DoiTac
+        {
+            MaDoiTac = dt.MaDoiTac,
+            Ten = dt.Ten,
+            ThongTinLienLac = dt.ThongTinLienLac,
+            DiaChi = dt.DiaChi,
+            KhachHang = dt.KhachHang,
+            NhaCungCap = dt.NhaCungCap,
+            DuNo = dt.DuNo
+        };
+        Editing = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        DbErrorMessage = null; 
+        //kiểm tra trùng lặp tên
+        var isDuplicate = await DbContext.DoiTacs
+                .AnyAsync(x => x.Ten == DoiTac.Ten.Trim() && x.MaDoiTac != DoiTac.MaDoiTac);
+
+            if (isDuplicate)
+            {
+                DbErrorMessage = "Đối tác đã tồn tại.";
+                return;
+            }
+        if (Editing)
+        {
+            var entity = await DbContext.DoiTacs.FindAsync(DoiTac.MaDoiTac);
+            if (entity != null)
+            {
+                entity.Ten = DoiTac.Ten;
+                entity.ThongTinLienLac = DoiTac.ThongTinLienLac;
+                entity.DiaChi = DoiTac.DiaChi;
+                entity.KhachHang = DoiTac.KhachHang;
+                entity.NhaCungCap = DoiTac.NhaCungCap;
+                entity.DuNo = DoiTac.DuNo ;
+            }
+        }
+        else
+        {
+            try
+            {
+                await DbContext.DoiTacs.AddAsync(DoiTac);
+            }
+                catch (Exception ex)
+            {
+                DbErrorMessage = "Lưu dữ liệu thất bại: " + ex.Message;
+                return;
+            }       
+        }
+
+        await DbContext.SaveChangesAsync();
+         await OnInitializedAsync();
+        ResetForm();
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        var entity = await DbContext.DoiTacs.FindAsync(id);
+        if (entity != null)
+        {
+            entity.DaXoa = true;
+            await DbContext.SaveChangesAsync();
+
+            // Reload danh sách những loại chưa bị xóa
+           await OnInitializedAsync();
+        }
+    }
+
+    @* private async Task DeleteAsync(int id)
+    {
+        var entity = await DbContext.DoiTacs.FindAsync(id);
+        if (entity != null)
+        {
+            DbContext.DoiTacs.Remove(entity);
+            await DbContext.SaveChangesAsync();
+            DoiTacs = await DbContext.DoiTacs.AsNoTracking().ToListAsync();
+        }
+    } *@
+
+    
+    private void ResetForm()
+    {
+        DoiTac = new DoiTac();
+        Editing = false;
+        DbErrorMessage = null;
+    }
+
+
+    @* code bắt lỗi catch *@
+    private string? DbErrorMessage;
+    private void ClearErrorMessage()
+    {
+        DbErrorMessage = null;
+    }
+}

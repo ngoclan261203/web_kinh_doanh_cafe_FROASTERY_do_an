@@ -1,0 +1,305 @@
+@page "/CoffeeRoad"
+@rendermode InteractiveServer
+@using System;
+@using System.Collections.Generic;
+@using System.Linq;
+@using System.Text;
+@using System.Threading.Tasks;
+@using Radzen
+@using Radzen.Blazor
+@implements IDisposable
+
+<div class="coffee-road-container mt-4 w-full">
+    <h2 class="coffee-road-title text-center text-2xl text-white">Hành trình cà phê</h2>
+    <img alt="decor" src="./images/coffee-beans-white.png" class="coffee-road-divider h-[20px] mx-auto pb-2" />
+</div>
+<section id="coffee-flow" class="coffee-flow w-full relative">
+    <RadzenCarousel @bind-SelectedIndex="ActiveIndex" Style="pointer-events: none" AllowNavigation="false" AllowPaging="false" Interval="10000" Change="OnNavIndexChange" class="coffee-carousel h-[500px]">
+        <Items>
+            @foreach (var item in RoadContents)
+            {
+                <RadzenCarouselItem>
+                    <div class="carousel-item-background" style="background-image: url('@item.ImageBg')">
+                        <div class="carousel-item-overlay">
+                            <div class="carousel-item-image-top" style="background-image: url('@item.ImageTop')"></div>
+                            <div class="carousel-item-image-bottom" style="background-image: url('@item.ImageBottom')"></div>
+                            <div class="carousel-item-content container max-w-[1200px] mx-auto flex flex-col h-full p-4">
+                                <article class="carousel-item-article relative grow flex flex-col items-center justify-center">
+                                    <h3 class="carousel-item-title  text-white text-2xl mb-4 flex items-center justify-between uppercase">
+                                        @item.Title
+                                    </h3>
+                                    <p class="carousel-item-description text-white text-xs flex items-center justify-between text-justify font-nunito">
+                                        @item.Description
+                                    </p>
+                                </article>
+                            </div>
+                        </div>
+                    </div>
+                </RadzenCarouselItem>
+            }
+        </Items>
+    </RadzenCarousel>
+    <div class="coffee-road-navigation w-full absolute bottom-0 left-0">
+        <div class="container max-w-[1200px] mx-auto p-4">
+            <CoffeeRoadNavigation ActiveIndex="ActiveIndex" OnIndexSelect="OnNavIndexChange" />
+        </div>
+    </div>
+</section>
+
+@code {
+    private Timer? timer;
+    private CancellationTokenSource? cts;
+    public class RoadContentDto
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string ImageBg { get; set; } = string.Empty;
+        public string ImageTop { get; set; } = string.Empty;
+        public string ImageBottom { get; set; } = string.Empty;
+
+
+    }
+    public class FeatureDto
+    {
+        public string ImageUrl { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+
+    public List<RoadContentDto> RoadContents { get; set; } = new()
+    {
+        new RoadContentDto()
+        {
+            Title = "Tinh Túy Từ Đỉnh Cao",
+            Description = "Từng hạt cà phê được chọn lọc kỹ lưỡng từ các nông trại với tâm huyết và tình yêu dành cho cà phê nguyên chất. Chúng tôi hợp tác chặt chẽ với những người nông dân tận tâm để đảm bảo mỗi hạt cà phê đều mang đến hương vị tinh tế và chất lượng cao nhất. Từ những ngọn đồi xanh mướt đến khâu sản xuất đầy tỉ mỉ, mỗi ly cà phê không chỉ đơn thuần là thức uống mà còn là sự gắn kết với thiên nhiên và bàn tay người nông dân.",
+            ImageBg = "./images/road1-2.jpg",
+            ImageTop = "./images/road1-1.jpg",
+            ImageBottom = "./images/road1-3.jpg",
+        },
+        new RoadContentDto()
+        {
+            Title = "Khởi Đầu Hoàn Hảo",
+            Description = "Để tạo nên ly cà phê hoàn hảo, quy trình sơ chế hạt cà phê đóng vai trò vô cùng quan trọng. Từng hạt cà phê được sơ chế cẩn thận ngay từ khi vừa thu hoạch, trải qua các giai đoạn tuyển chọn, rửa sạch và phơi khô trong điều kiện tối ưu nhất. Chúng tôi áp dụng những phương pháp sơ chế hiện đại nhưng vẫn giữ trọn vẹn nét truyền thống, đảm bảo mỗi hạt cà phê đều lưu giữ được hương vị đặc trưng và thơm ngon tự nhiên. Hãy cùng trải nghiệm những hạt cà phê được sơ chế kỹ lưỡng – bước đầu tiên để mang đến một ly cà phê tinh túy và hoàn mỹ.",
+            ImageBg = "./images/road2-1.jpg",
+            ImageTop = "./images/road2-2.jpg",
+            ImageBottom = "./images/road2-3.jpg",
+        },
+        new RoadContentDto()
+        {
+            Title = "Tinh Hoa Từ Ánh Nắng",
+            Description = "Trong giai đoạn phơi khô, từng hạt cà phê được chăm chút tỉ mỉ dưới ánh nắng tự nhiên, giúp hạt đạt độ ẩm lý tưởng và giữ trọn hương vị đặc trưng. Đây là quá trình đòi hỏi sự kiên nhẫn và kỹ thuật cao, bởi ánh nắng không chỉ giúp làm khô mà còn góp phần làm nổi bật các tầng hương vị tiềm ẩn trong mỗi hạt. Nhờ sự kết hợp hài hòa giữa thời gian, ánh sáng và không khí, từng hạt cà phê sau khi phơi khô đều sẵn sàng mang đến một trải nghiệm thưởng thức tuyệt vời trong từng giọt cà phê.",
+            ImageBg = "./images/road3-1.jpg",
+            ImageTop = "./images/road3-2.jpg",
+            ImageBottom = "./images/road3-3.jpg",
+        },
+        new RoadContentDto()
+        {
+            Title = "Bí Quyết Hương Vị",
+            Description = "Rang cà phê là nghệ thuật tạo nên hương vị đặc trưng, nơi từng hạt cà phê được chuyển mình qua những tầng nhiệt khác nhau để bung tỏa trọn vẹn hương thơm và vị đậm đà. Dưới sự kiểm soát tỉ mỉ về nhiệt độ và thời gian, từng hạt cà phê đạt đến độ chín hoàn hảo, mang lại sự cân bằng tuyệt đối giữa vị ngọt, đắng và hương thơm phong phú. Với quá trình rang công phu, mỗi hạt cà phê đều được chăm chút để mang đến ly cà phê tròn vị, đánh thức mọi giác quan.",
+            ImageBg = "./images/road4-1.jpg",
+            ImageTop = "./images/road4-2.jpg",
+            ImageBottom = "./images/road4-3.jpg",
+        },
+        new RoadContentDto()
+        {
+            Title = "Chạm Đến Hương Vị",
+            Description = "Cupping là bước đánh giá tinh tế để khám phá trọn vẹn hương vị của từng hạt cà phê. Trong giai đoạn này, những chuyên gia nếm thử từng mẫu cà phê để cảm nhận sự cân bằng của hương thơm, độ chua, độ ngọt và hậu vị. Với từng ngụm thử, các tầng hương và vị được phân tích kỹ lưỡng, giúp chọn ra những hạt cà phê có phẩm chất tốt nhất. Đây không chỉ là một quy trình kiểm tra chất lượng mà còn là một nghệ thuật, mang đến sự đảm bảo về trải nghiệm hoàn hảo trong mỗi ly cà phê.",
+            ImageBg = "./images/road5-1.jpg",
+            ImageTop = "./images/road5-2.jpg",
+            ImageBottom = "./images/road5-3.jpg",
+        },
+        new RoadContentDto()
+        {
+            Title = "Cái kết hoàn hảo",
+            Description = "Trải qua quy trình chọn lọc, sơ chế, phơi khô, rang xay và đánh giá khắt khe, từng hạt cà phê thành phẩm là kết tinh của sự chăm chút và đam mê. Mỗi hạt đều mang trong mình hương thơm và vị đậm đà, sẵn sàng để mang đến trải nghiệm cà phê tinh túy nhất. Đây không chỉ là sản phẩm, mà là thành quả từ những đôi bàn tay tận tâm và quá trình chế tác kỳ công – tạo nên ly cà phê đậm chất và đầy cảm xúc cho những người yêu cà phê đích thực.",
+            ImageBg = "./images/road6-1.jpg",
+            ImageTop = "./images/road6-2.jpg",
+            ImageBottom = "./images/road6-3.jpg",
+        },
+    };
+    public int ActiveIndex { get; set; } = 0;
+    public RoadContentDto Data { get; set; } = new RoadContentDto();
+
+    protected override void OnParametersSet()
+    {
+        Data = RoadContents[ActiveIndex];
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        cts = new CancellationTokenSource();
+        _ = StartAutoSlider(cts.Token);
+        await Task.Yield(); // tránh cảnh báo CS1998
+    }
+// giảm xung đột>> resẻt lại timer khi click
+    public void OnNavIndexChange(int value)
+    {
+        ActiveIndex = Math.Max(0, Math.Min(value, RoadContents.Count - 1));
+// kh dc vượt quá gihan
+        Data = RoadContents[ActiveIndex];
+
+        // Reset lại timer
+        timer?.Change(TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+
+        StateHasChanged();
+    }
+    private Task StartAutoSlider(CancellationToken token)
+    {
+        timer = new Timer(async _ =>
+        {
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+
+            await InvokeAsync(() =>
+            {
+                ActiveIndex = (ActiveIndex + 1) % RoadContents.Count;
+                Data = RoadContents[ActiveIndex];
+                StateHasChanged();
+            });
+        }, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+
+        return Task.CompletedTask;
+    }
+    public void Dispose()
+    {
+        timer?.Dispose();
+        cts?.Cancel();
+        cts?.Dispose();
+    }
+
+
+}
+
+<style>
+    .coffee-road-container {
+        margin-top: 1rem;
+        width: 100%;
+        background-color: black;
+    }
+
+    .coffee-road-title {
+        text-align: center;
+        font-size: 2rem;
+        color: white;
+    }
+
+    .coffee-road-divider {
+        height: 20px;
+        margin-left: auto;
+        margin-right: auto;
+        padding-bottom: 0.5rem;
+        display: block;
+    }
+
+    .coffee-flow {
+        width: 100%;
+        background-color: black;
+        height: 500px;
+        position: relative;
+    }
+
+    .coffee-carousel {
+        height: 500px;
+    }
+
+    .carousel-item-background {
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+    }
+
+    .carousel-item-overlay {
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .carousel-item-image-top {
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+        width: 50%;
+        max-width: 40%;
+        xl-max-width: 30%;
+        top: -5%;
+        md-top: -20%;
+        left: -10%;
+        border-radius: 50%;
+        aspect-ratio: 1;
+        position: absolute;
+        box-shadow: 0 0 5px white;
+    }
+
+    .carousel-item-image-bottom {
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+        width: 30%;
+        xl-max-width: 20%;
+        bottom: 50px;
+        right: -10%;
+        xl-right: -5%;
+        border-radius: 50%;
+        aspect-ratio: 1;
+        position: absolute;
+        box-shadow: 0 0 5px white;
+    }
+
+    .carousel-item-content {
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 1rem;
+    }
+
+    .carousel-item-article {
+        position: relative;
+        -ms-flex: 1 1 auto;
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        -ms-flex-align: center;
+        align-items: center;
+        -ms-flex-pack: center;
+        justify-content: center;
+    }
+
+    .carousel-item-title {
+        color: white;
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        display: flex;
+        -ms-flex-pack: justify;
+        justify-content: space-between;
+        text-transform: uppercase;
+    }
+
+    .carousel-item-description {
+        color: white;
+        font-size: 0.75rem;
+        display: flex;
+        -ms-flex-pack: justify;
+        justify-content: space-between;
+        text-align: justify;
+        font-family: 'Nunito', sans-serif;
+    }
+
+    .coffee-road-navigation {
+        width: 100%;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+    }
+</style>

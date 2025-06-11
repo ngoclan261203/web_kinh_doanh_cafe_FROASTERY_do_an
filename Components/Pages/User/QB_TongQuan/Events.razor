@@ -1,0 +1,142 @@
+@page "/su-kien"
+@using FROASTERY.Models
+@rendermode InteractiveServer
+@using FROASTERY.Data;
+@using Microsoft.EntityFrameworkCore;
+@inject AppDbContext DbContext
+
+<style>
+        #signature {
+        margin-top: 0.5rem;
+        background-color: #eceae3;
+        position: relative;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        overflow: hidden;
+    }
+    .event-section {
+        padding: 40px 0;
+    }
+
+    .event-card {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+        height: 250px;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        background-color: white;
+        transition: transform 0.3s ease;
+    }
+
+    .event-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .event-card .card-body {
+        padding: 10px 16px;
+    }
+
+    .card-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .card-text {
+        font-size: 0.9rem;
+        color: #333;
+    }
+
+    .card-subtitle {
+        font-size: 0.8rem;
+        margin-bottom: 4px;
+    }
+    @* .coffee-road-container {
+        margin-top: 1rem;
+        width: 100%;
+        background-color: black;
+    }    
+    .coffee-road-title {
+        text-align: center;
+        font-size: 2rem;
+        color: white;
+    }
+     *@
+
+</style>
+<section id='signature'>
+@* <h2 class="coffee-road-title text-center text-2xl text-white">Sự kiện nổi bật</h2> *@
+   <div class="container-fluid">
+        <div class="row justify-content-center gx-5">
+
+            <!-- Sự kiện đang diễn ra -->
+            <div class="col-lg-6 col-md-12 mb-4">
+                <h3 class="mb-4 fw-bold text-center">Sự kiện đang diễn ra</h3>
+                @foreach (var sk in SuKienDangDienRa)
+                {
+                    <div class="card mb-4 shadow-sm rounded-3 overflow-hidden">
+                        <div class="row g-0 h-100">
+                            <div class="col-md-6">
+                                <img src="@sk.Anh" class="img-fluid h-100 w-100" style="object-fit: cover;" />
+                            </div>
+                            <div class="col-md-6 p-4 d-flex flex-column justify-content-center">
+                                <h4 class="fw-bold">@sk.TieuDe</h4>
+                                <p class="text-muted mb-1">
+                                    Từ @sk.ThoiGianBatDau?.ToString("dd/MM/yyyy") - @sk.ThoiGianKetThuc?.ToString("dd/MM/yyyy")
+                                </p>
+                                <p>@sk.NoiDung</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Sự kiện sắp diễn ra -->
+            <div class="col-lg-6 col-md-12 mb-4">
+                <h3 class="mb-4 fw-bold text-center">Sự kiện sắp diễn ra</h3>
+                @foreach (var sk in SuKienSapDienRa)
+                {
+                    <div class="card mb-4 shadow-sm rounded-3 overflow-hidden">
+                        <div class="row g-0 h-100">
+                            <div class="col-md-6">
+                                <img src="@sk.Anh" class="img-fluid h-100 w-100" style="object-fit: cover;" />
+                            </div>
+                            <div class="col-md-6 p-4 d-flex flex-column justify-content-center">
+                                <h4 class="fw-bold">@sk.TieuDe</h4>
+                                <p class="text-muted mb-1">
+                                    Từ @sk.ThoiGianBatDau?.ToString("dd/MM/yyyy") - @sk.ThoiGianKetThuc?.ToString("dd/MM/yyyy")
+                                </p>
+                                <p>@sk.NoiDung</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+        </div>
+    </div>
+</section>
+@code {
+    private List<SuKien> SuKienDangDienRa = new();
+    private List<SuKien> SuKienSapDienRa = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var now = DateTime.Now;
+
+        var all = await DbContext.SuKiens.Where(p => !p.DaXoa)
+            .Where(s => s.ThoiGianBatDau != null && s.ThoiGianKetThuc != null)
+            .ToListAsync();
+
+        SuKienDangDienRa = all.Where(s =>
+            s.ThoiGianBatDau <= now && s.ThoiGianKetThuc >= now
+        ).ToList();
+
+        SuKienSapDienRa = all.Where(s =>
+            s.ThoiGianBatDau > now
+        ).ToList();
+    }
+}
+

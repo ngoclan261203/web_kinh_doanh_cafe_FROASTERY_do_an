@@ -1,0 +1,51 @@
+@page "/logout"
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Authorization
+
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+@rendermode InteractiveServer
+@using FROASTERY.Models
+@using FROASTERY.Data
+@using FROASTERY.Components.Shared
+@using System.Security.Claims
+@using FROASTERY.Services;
+
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+@inject UserSessionService SessionService
+
+<PageTitle>Đăng Xuất</PageTitle>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Đăng xuất người dùng
+                if (AuthenticationStateProvider is CustomAuthenticationStateProvider authStateProvider)
+                {
+                    await authStateProvider.MarkUserAsLoggedOut();
+                    // In ra thông báo đăng xuất thành công vào console
+                    Console.WriteLine("Đăng xuất thành công.");
+                }
+
+                SessionService.Logout();
+                
+                // Chuyển hướng về trang đăng nhập
+                Navigation.NavigateTo("/");
+            }
+            catch (Exception ex)
+            {
+                // In ra thông báo lỗi nếu có
+                Console.WriteLine("Lỗi khi đăng xuất: " + ex.Message);
+            }
+        }
+    }
+}
